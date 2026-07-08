@@ -4,4 +4,6 @@ plugins {
 
 dependencies {
     api(project(":chronos-core"))
+
+    testImplementation(testFixtures(project(":chronos-core")))
 }
