@@ -1,0 +1,39 @@
+tradex:
+  auth:
+    jwt:
+      issuer: tradex
+      access-ttl: PT15M
+      refresh-ttl: P14D
+      key-id: ${TRADEX_AUTH_JWT_KEY_ID}
+      private-key-pem: ${TRADEX_AUTH_JWT_PRIVATE_KEY}
+      public-key-pem: ${TRADEX_AUTH_JWT_PUBLIC_KEY}
+
+  member:
+    crypto:
+      active-key-version: 1
+      aes-keys:
+        1: ${TRADEX_MEMBER_AES_KEY_V1}
+      hmac-key: ${TRADEX_MEMBER_HMAC_KEY}
+
+spring:
+  datasource:
+    url: ${TRADEX_DB_URL}
+    username: ${TRADEX_DB_USERNAME}
+    password: ${TRADEX_DB_PASSWORD}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    properties:
+      hibernate:
+        jdbc:
+          time_zone: UTC
+  flyway:
+    enabled: true
+    schemas: auth
+    default-schema: auth
+  data:
+    redis:
+      host: ${TRADEX_REDIS_HOST}
+      port: ${TRADEX_REDIS_PORT}
+      password: ${TRADEX_REDIS_PASSWORD}
+
