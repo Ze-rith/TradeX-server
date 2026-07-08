@@ -23,8 +23,8 @@ interface EventStore {
         events: List<DomainEvent>,
     ): List<EventRecord<DomainEvent>>
 
-    /** 스트림 전체를 seqNo 오름차순으로. */
-    fun readStream(aggregateId: AggregateId): List<EventRecord<DomainEvent>>
+    /** 스트림을 seqNo 오름차순으로. [afterSeqNo] 이후만 (스냅샷 이후 리플레이용). */
+    fun readStream(aggregateId: AggregateId, afterSeqNo: Long = 0L): List<EventRecord<DomainEvent>>
 
     /** transactionTime ≤ [transactionTime] 인 레코드만 — "그 당시 시스템이 알던 모습"의 원료. */
     fun readStreamAsAt(aggregateId: AggregateId, transactionTime: Instant): List<EventRecord<DomainEvent>>

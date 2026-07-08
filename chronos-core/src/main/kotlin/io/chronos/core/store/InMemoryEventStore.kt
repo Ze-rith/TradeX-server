@@ -67,8 +67,8 @@ class InMemoryEventStore(
         }
     }
 
-    override fun readStream(aggregateId: AggregateId): List<EventRecord<DomainEvent>> =
-        synchronized(lock) { streams[aggregateId]?.toList() ?: emptyList() }
+    override fun readStream(aggregateId: AggregateId, afterSeqNo: Long): List<EventRecord<DomainEvent>> =
+        synchronized(lock) { streams[aggregateId]?.filter { it.seqNo > afterSeqNo } ?: emptyList() }
 
     override fun readStreamAsAt(aggregateId: AggregateId, transactionTime: Instant): List<EventRecord<DomainEvent>> =
         synchronized(lock) {

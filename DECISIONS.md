@@ -40,7 +40,17 @@
 - **결정**: `chronos-runtime/src/test`에 배치(전 레이어를 아는 유일한 모듈). `Konsist.scopeFromProject()`로 루트 전체 스캔.
 - **근거**: 별도 arch-test 모듈은 명세의 고정 모듈 구조에 없음.
 
-## D8. 셀 마이그레이션 중 쓰기: **거절(REJECTED)** (M5)
+## D8. event_store에 `event_id UUID UNIQUE` 컬럼 추가 (스케치 대비 변경)
+
+- **결정**: 명세의 DDL 스케치에 `event_id` 컬럼을 추가했다.
+- **근거**: `DomainEvent.correctionOf`는 EventId를 가리키는데 스케치의 `correction_of`는 global_seq FK다. eventId → global_seq 해석과 정정 대상 검증(존재·타입 일치)을 위해 조회 가능한 UNIQUE 컬럼이 필요하다. 명세 스스로 "조정 가능, 의도 유지"를 허용.
+
+## D9. Postgres 어댑터를 chronos-membrane에 배치
+
+- **결정**: `PostgresEventStore`/`PostgresSnapshotStore`는 `io.chronos.membrane.store`에 둔다.
+- **근거**: 저장된 표현(JSON + 버전)과 도메인 객체 사이의 변환이 곧 진화막의 일이다. 스토어는 읽는 순간 upcast를 강제하는 지점이므로 serde와 같은 모듈에 있어야 "옛 스키마가 코어에 새는" 경로가 원천 차단된다. 의존 방향(membrane → core)도 유지된다.
+
+## D10. 셀 마이그레이션 중 쓰기: **거절(REJECTED)** (M5)
 
 - **결정**: 마이그레이션 중 해당 aggregate 쓰기는 `MigrationInProgressException`으로 즉시 거절. 클라이언트 재시도 책임.
 - **근거**: 큐잉은 큐 내구성·순서·중복 문제를 v1에 끌어들인다. 거절은 시맨틱이 단순하고 테스트로 증명하기 쉬우며, 이벤트 스트림 복사의 일관성 컷오프가 명확해진다. `// TODO(v2): write queueing`.
