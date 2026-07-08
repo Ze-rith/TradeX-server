@@ -36,6 +36,14 @@ interface EventStore {
     fun lastGlobalSeq(): Long
 }
 
+/**
+ * 셀 마이그레이션용 스트림 임포트. 원본의 seqNo·transactionTime을 **보존**해
+ * bi-temporal 시맨틱이 이관 후에도 성립하게 한다. globalSeq는 대상 파티션이 새로 부여한다.
+ */
+interface StreamImporter {
+    fun importStream(records: List<EventRecord<DomainEvent>>)
+}
+
 class OptimisticConcurrencyException(
     aggregateId: AggregateId,
     expected: Long,
