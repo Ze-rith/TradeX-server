@@ -61,9 +61,9 @@ class ChronosConfiguration {
         ChronosProperties.Storage.IN_MEMORY -> CellFabric(props.cellCount, props.virtualNodes)
         ChronosProperties.Storage.POSTGRES -> {
             val ds = requireNotNull(dataSource.ifAvailable) { "chronos.storage=POSTGRES에는 DataSource가 필요하다" }
-            SchemaInitializer.applyForCells(ds, (0 until props.cellCount).toList())
+            SchemaInitializer.applyForCells(ds, (0 until props.cellCount).toList(), props.tablePrefix)
             CellFabric(props.cellCount, props.virtualNodes) { cellId ->
-                Cell(cellId, PostgresEventStore(ds, serde, cellId, tableName = "event_store_$cellId"))
+                Cell(cellId, PostgresEventStore(ds, serde, cellId, tableName = "${props.tablePrefix}_$cellId"))
             }
         }
     }

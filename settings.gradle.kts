@@ -13,4 +13,5 @@ include(
     "chronos-ontology",
     "chronos-runtime",
     "example-app",
+    "tradex-app",
 )

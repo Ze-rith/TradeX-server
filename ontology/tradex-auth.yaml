@@ -1,0 +1,37 @@
+context: tradex-auth
+
+terms:
+  - term: 사용자(User)
+    definition: 이메일+비밀번호 자격을 가진 인증 주체. 등록/잠금/토큰 수명 주기가 이벤트로 기록된다.
+  - term: 토큰 회전
+    definition: refresh 재발급 시 이전 jti 폐기 + 신규 발급을 한 append 배치로 기록. 재사용 감지 시 전면 폐기.
+
+schemas:
+  - type: UserRegistered
+    version: 1
+    status: APPROVED
+    fields: [email, passwordHash]
+  - type: UserRegistrationRevoked
+    version: 1
+    status: APPROVED
+    fields: [reason]
+  - type: SignInFailed
+    version: 1
+    status: APPROVED
+    fields: [failureCount, lockedUntil]
+  - type: SignInSucceeded
+    version: 1
+    status: APPROVED
+    fields: []
+  - type: RefreshTokenIssued
+    version: 1
+    status: APPROVED
+    fields: [jti, expiresAt]
+  - type: RefreshTokenRevoked
+    version: 1
+    status: APPROVED
+    fields: [jti, reason]
+  - type: AccessTokenBlacklisted
+    version: 1
+    status: APPROVED
+    fields: [jti, expiresAt]

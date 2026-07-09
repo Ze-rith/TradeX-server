@@ -1,0 +1,17 @@
+context: tradex-member
+
+terms:
+  - term: 멤버(Member)
+    definition: 실명·생년월일·전화번호를 가진 프로필. PII는 이벤트에 암호문으로만 실린다.
+  - term: 전화번호 해시
+    definition: E.164 정규화 번호의 HMAC-SHA256 — 평문 노출 없이 유니크 제약을 잡는 인덱스 키.
+
+schemas:
+  - type: MemberCreated
+    version: 1
+    status: APPROVED
+    fields: [encryptedName, encryptedBirthDate, encryptedPhoneNumber, phoneNumberHash]
+  - type: MemberCreationRevoked
+    version: 1
+    status: APPROVED
+    fields: [reason]

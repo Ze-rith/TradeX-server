@@ -17,6 +17,7 @@
 | `chronos-ontology` | L5 Ubiquitous Language Registry | `ontology/*.yaml`. 미승인(DRAFT) 스키마는 기동 실패. `ontologyValidate` Gradle 태스크가 코드↔YAML diff로 빌드 게이트 |
 | `chronos-runtime` | 조립 | `@EnableChronos` 하나로 전 레이어 와이어링 |
 | `example-app` | 데모 | 주문/결제/재고 (결제·재고는 인메모리 fake 포트) |
+| `tradex-app` | 실전 이식 | 레거시 tradexServer(인증/회원가입/멤버)의 CHRONOS 재구현 — 아래 참조 |
 
 ## 빌드 & 테스트
 
@@ -140,6 +141,40 @@ Postgres에서 직접 확인: 셀 파티션은 테이블로 분리되어 있다.
 docker exec chronos-postgres psql -U chronos -c '\dt event_store*'
 docker exec chronos-postgres psql -U chronos -c \
   'SELECT seq_no, event_type, event_version, correction_of, transaction_time FROM event_store_0 ORDER BY global_seq LIMIT 10;'
+```
+
+## tradex-app — 레거시 기능의 CHRONOS 이식
+
+레거시 tradexServer(커밋 `ee6ac1f`)의 인증/회원가입/멤버를 CHRONOS 위에 재구현한 앱.
+API 계약(BaseResponse 봉투, refresh HttpOnly 쿠키, 경로)과 도메인 규칙(비밀번호 12자+3종,
+5회 실패 30분 잠금, E.164 정규화, 만 14세)은 레거시 그대로다. 매핑은 DECISIONS.md D17~D21.
+
+| 레거시 | CHRONOS 재구현 |
+|---|---|
+| JPA User 엔티티 (가변 상태) | `UserAggregate` 이벤트 리플레이 — 로그인 실패/잠금/토큰 수명 주기가 전부 이벤트 |
+| Redis refresh 스토어 + 블랙리스트 | User 스트림의 `RefreshTokenIssued/Revoked`, `AccessTokenBlacklisted` |
+| 등록 = 단일 @Transactional | `RegisterAccount` 사가 (User → Member, 실패 시 역순 보상) + **모델 체커로 16경로 전수 증명** |
+| DB unique 제약 (email/phone) | 인덱스 프로젝션 + 동기 catch-up 검사 |
+| PII 암호화 컬럼 | 이벤트 페이로드에 AES-GCM 암호문만 (crypto-shredding 경로 유지) |
+
+```bash
+docker compose up -d
+./gradlew :tradex-app:bootRun    # port 8081, secrets/jwt-*.pem 있으면 로드, 없으면 임시 키
+
+# 가입 → 로그인 → 검증 → 회전 → 재사용 감지 → 사인아웃
+curl -s -X POST localhost:8081/api/v1/registration -H 'Content-Type: application/json' \
+  -d '{"email":"me@tradex.io","password":"Sup3r$ecretPw!","name":"김제리","birthDate":"1995-03-14","phoneNumber":"010-1234-5678"}'
+
+curl -s -c /tmp/c.txt -X POST localhost:8081/api/v1/auth/sign-in -H 'Content-Type: application/json' \
+  -d '{"email":"me@tradex.io","password":"Sup3r$ecretPw!"}'          # data.accessToken + refresh 쿠키
+curl -s localhost:8081/api/v1/auth/me -H "Authorization: Bearer $ACCESS"
+curl -s -b /tmp/c.txt -c /tmp/c2.txt -X POST localhost:8081/api/v1/auth/reissue   # 회전
+curl -s -b /tmp/c.txt -X POST localhost:8081/api/v1/auth/reissue                  # 옛 토큰 재사용 → 401 + 전면 폐기
+curl -s -b /tmp/c2.txt -X POST localhost:8081/api/v1/auth/sign-out -H "Authorization: Bearer $ACCESS"
+
+# 계정의 전체 수명 주기가 이벤트 감사 로그로 남는다
+docker exec chronos-postgres psql -U chronos -c \
+  "SELECT seq_no, event_type FROM tradex_event_store_0 WHERE aggregate_type='User' ORDER BY seq_no;"
 ```
 
 ## 핵심 테스트 지도

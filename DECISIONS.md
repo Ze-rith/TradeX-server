@@ -85,3 +85,28 @@
 
 - **결정**: 데모 Postgres는 호스트 55432에 바인딩한다 (컨테이너 내부는 5432).
 - **근거**: 개발 머신에 로컬 PostgreSQL이 5432를 점유한 경우가 흔해(이 저장소의 개발 환경 포함) 기본 포트는 `docker compose up`부터 실패한다.
+
+## D17. 레거시 tradexServer 기능의 CHRONOS 재구현 — 별도 `tradex-app` 모듈
+
+- **결정**: 인증/회원가입/멤버를 example-app과 분리된 `tradex-app` 모듈로 재구현한다. API 계약(경로 `/api/v1/registration`, `/api/v1/auth/*`, BaseResponse 봉투, refresh HttpOnly 쿠키)과 도메인 규칙(비밀번호 정책 12자+3종, 잠금 5회/30분, 이메일 정규화, 전화 E.164 정규화, 만 14세)은 레거시(ee6ac1f)와 동일하게 유지한다.
+- **근거**: example-app은 명세가 고정한 주문/결제/재고 데모라 오염시키지 않는다. Spring Security 필터 체인은 레퍼런스 범위 밖이라 제외하고, ValidateAccessTokenUseCase는 `GET /api/v1/auth/me` 엔드포인트로 표면화한다.
+
+## D18. Redis refresh 토큰 스토어 → User 애그리게잇 이벤트로 대체
+
+- **결정**: 레거시의 Redis(userId→jti, 블랙리스트 TTL)를 User 스트림의 `RefreshTokenIssued/RefreshTokenRevoked/AccessTokenBlacklisted` 이벤트로 대체한다. 회전(reissue) = Revoked+Issued 원자 배치, 재사용 감지(jti 불일치) = 활성 토큰 방어적 폐기, TTL = 상태의 expiresAt을 조회 시각과 비교.
+- **근거**: CHRONOS v1은 Redis 금지. 단일 활성 세션 정책(레거시와 동일)이라 상태가 작고, 토큰 수명 주기가 감사 가능한 이벤트 히스토리로 남는 것이 오히려 이득이다.
+
+## D19. 잠금 결정은 이벤트에 기록 (SignInFailed가 failureCount·lockedUntil을 실어 나름)
+
+- **결정**: 로그인 실패 시 서비스가 LockPolicy로 다음 상태를 **결정**해 `SignInFailed(failureCount, lockedUntil)`에 기록하고, evolve는 그대로 반영만 한다. 잠금 해제는 이벤트 없이 `lockedUntil < now` 파생으로 처리한다(레거시의 상태 변이식 auto-unlock 대체).
+- **근거**: evolve에 정책을 넣으면 정책 변경이 과거 리플레이 결과를 바꾼다. 결정은 기록하고 파생은 계산한다.
+
+## D20. 이메일/전화 유니크 제약 → 인덱스 프로젝션 + 동기 catch-up 검사
+
+- **결정**: 전 셀 스토어를 소비하는 email/phoneHash 인덱스 프로젝션을 두고, 등록 직전 동기 catch-up 후 검사한다.
+- **근거**: 이벤트소싱에서 애그리게잇 경계를 넘는 유니크는 원천적으로 조회 모델 문제다. 단일 JVM v1에서는 동기 catch-up으로 사실상 선형화된다. 동시 등록 race는 v1 한계로 명시한다. `// TODO(v2): reservation aggregate`.
+
+## D21. 계정 등록 = 사가 (레거시 단일 @Transactional의 대체) + PII는 이벤트에 암호문으로
+
+- **결정**: User 등록과 Member 생성은 서로 다른 애그리게잇(잠재적으로 다른 셀)이므로 `RegisterAccount` 사가(registerUser → createMember, 보상 = 각각 Revoked 이벤트)로 묶고, 모델 체커로 "계정과 멤버는 함께 존재하거나 함께 사라진다" 불변식을 전 경로 검증한다. PII(이름/생일/전화)는 레거시처럼 AES-GCM 암호문으로만 이벤트에 저장하고 전화 유니크는 HMAC 해시로 잡는다.
+- **근거**: 불변 이벤트 로그에 평문 PII를 넣으면 삭제 요구에 대응 불가(crypto-shredding 경로 유지). JWT RS256 키는 `secrets/jwt-*.pem`이 있으면 로드, 없으면 기동 시 임시 생성(테스트/데모용).

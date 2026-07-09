@@ -12,11 +12,11 @@ object SchemaInitializer {
      * 셀 파티션용: event_store를 셀별 테이블(event_store_0, ...)로 복제 생성한다.
      * snapshot/projection_offset은 공유 테이블 그대로.
      */
-    fun applyForCells(dataSource: DataSource, cellIds: Collection<Int>) {
+    fun applyForCells(dataSource: DataSource, cellIds: Collection<Int>, tableBaseName: String = "event_store") {
         val ddl = bundledDdl()
         execute(dataSource, ddl)
         for (cellId in cellIds) {
-            execute(dataSource, ddl.replace(Regex("\\bevent_store\\b"), "event_store_$cellId"))
+            execute(dataSource, ddl.replace(Regex("\\bevent_store\\b"), "${tableBaseName}_$cellId"))
         }
     }
 

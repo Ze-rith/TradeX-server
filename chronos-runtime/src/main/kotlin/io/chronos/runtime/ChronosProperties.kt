@@ -14,6 +14,8 @@ data class ChronosProperties(
     val rywTimeoutMs: Long = 2_000,
     /** ontology YAML 디렉토리. 존재하지 않으면 기동 실패. */
     val ontologyDir: String = "ontology",
+    /** POSTGRES 셀 파티션 테이블 프리픽스 — 여러 앱이 한 DB를 공유할 때 분리용. */
+    val tablePrefix: String = "event_store",
 ) {
     enum class Storage { IN_MEMORY, POSTGRES }
 }
