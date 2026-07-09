@@ -3,7 +3,7 @@ plugins {
 }
 
 allprojects {
-    group = "io.chronos"
+    group = "io.tradex"
     version = "0.1.0-SNAPSHOT"
 }
 

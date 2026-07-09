@@ -1,16 +1,16 @@
 services:
   postgres:
     image: postgres:16-alpine
-    container_name: chronos-postgres
+    container_name: tradex-postgres
     environment:
-      POSTGRES_DB: chronos
-      POSTGRES_USER: chronos
-      POSTGRES_PASSWORD: chronos
+      POSTGRES_DB: ${TRADEX_DB_NAME:-tradex}
+      POSTGRES_USER: ${TRADEX_DB_USERNAME:-tradex}
+      POSTGRES_PASSWORD: ${TRADEX_DB_PASSWORD:-tradex}
     ports:
       # 로컬에 이미 PostgreSQL이 있어도 충돌하지 않도록 비표준 호스트 포트를 쓴다
-      - "55432:5432"
+      - "${TRADEX_DB_HOST_PORT:-55432}:5432"
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U chronos"]
+      test: ["CMD-SHELL", "pg_isready -U ${TRADEX_DB_USERNAME:-tradex}"]
       interval: 2s
       timeout: 2s
       retries: 15

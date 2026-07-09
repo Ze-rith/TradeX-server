@@ -1,21 +1,19 @@
 server:
-  port: 8083
+  port: ${TRADEX_REGISTRATION_PORT:8083}
 
 spring:
   application:
     name: tradex-registration
   datasource:
-    url: jdbc:postgresql://localhost:55432/chronos
-    username: chronos
-    password: chronos
-
-chronos:
-  storage: POSTGRES
-  cell-count: 3
-  ontology-dir: ontology
-  table-prefix: tradex_registration_event_store
+    url: ${TRADEX_DB_URL:jdbc:postgresql://localhost:55432/tradex}
+    username: ${TRADEX_DB_USERNAME:tradex}
+    password: ${TRADEX_DB_PASSWORD:tradex}
 
 tradex:
+  storage: ${TRADEX_STORAGE:POSTGRES}
+  cell-count: ${TRADEX_CELL_COUNT:3}
+  ontology-dir: ${TRADEX_ONTOLOGY_DIR:ontology}
+  table-prefix: tradex_registration_event_store
   services:
-    auth-base-url: http://localhost:8081
-    member-base-url: http://localhost:8082
+    auth-base-url: ${TRADEX_AUTH_BASE_URL:http://localhost:8081}
+    member-base-url: ${TRADEX_MEMBER_BASE_URL:http://localhost:8082}

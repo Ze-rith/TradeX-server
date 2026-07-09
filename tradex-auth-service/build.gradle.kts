@@ -1,10 +1,10 @@
 plugins {
-    id("chronos.spring-library")
+    id("tradex.spring-library")
     id("org.springframework.boot") version "3.5.14"
 }
 
 dependencies {
-    implementation(project(":chronos-runtime"))
+    implementation(project(":tradex-runtime"))
     implementation("org.springframework.boot:spring-boot-starter-web")
     implementation("org.springframework.boot:spring-boot-starter-jdbc")
     implementation("org.springframework.boot:spring-boot-starter-validation")

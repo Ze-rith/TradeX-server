@@ -1,16 +1,20 @@
 server:
-  port: 8082
+  port: ${TRADEX_MEMBER_PORT:8082}
 
 spring:
   application:
     name: tradex-member
   datasource:
-    url: jdbc:postgresql://localhost:55432/chronos
-    username: chronos
-    password: chronos
+    url: ${TRADEX_DB_URL:jdbc:postgresql://localhost:55432/tradex}
+    username: ${TRADEX_DB_USERNAME:tradex}
+    password: ${TRADEX_DB_PASSWORD:tradex}
 
-chronos:
-  storage: POSTGRES
-  cell-count: 3
-  ontology-dir: ontology
+tradex:
+  storage: ${TRADEX_STORAGE:POSTGRES}
+  cell-count: ${TRADEX_CELL_COUNT:3}
+  ontology-dir: ${TRADEX_ONTOLOGY_DIR:ontology}
   table-prefix: tradex_member_event_store
+  member:
+    crypto:
+      pii-key-base64: ${TRADEX_MEMBER_AES_KEY_V1:3q2+7wPQvL7yD5nB8kQxWm4t9JcAeUZR0oHs6fMignA=}
+      phone-hmac-key-base64: ${TRADEX_MEMBER_HMAC_KEY:cGhvbmUtaG1hYy1kZW1vLWtleS0zMmJ5dGVzLXBhZGRlZCE=}

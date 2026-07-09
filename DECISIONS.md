@@ -4,8 +4,8 @@
 
 ## D1. 기존 tradexServer 코드 처리
 
-- **결정**: 저장소를 CHRONOS로 전환하되, 레거시 전체를 커밋 `ee6ac1f`(`legacy: snapshot ...`)에 보존 후 워킹트리에서 제거. `.env`, `secrets/`는 gitignore 상태 그대로 로컬에 유지.
-- **근거**: 사용자가 "tradexServer를 CHRONOS로 전환"을 선택. 레거시(인증/회원, Redis/JPA)는 CHRONOS 금지 스택(Redis)과 충돌하고 예제 도메인(주문/결제/재고)과 무관하므로 빌드에 남기지 않는다. 복원은 git으로 가능.
+- **결정**: 저장소를 TradeX로 전환하되, 레거시 전체를 커밋 `ee6ac1f`(`legacy: snapshot ...`)에 보존 후 워킹트리에서 제거. `.env`, `secrets/`는 gitignore 상태 그대로 로컬에 유지.
+- **근거**: 사용자가 "tradexServer를 TradeX로 전환"을 선택. 레거시(인증/회원, Redis/JPA)는 TradeX 금지 스택(Redis)과 충돌하고 예제 도메인(주문/결제/재고)과 무관하므로 빌드에 남기지 않는다. 복원은 git으로 가능.
 
 ## D2. 영속성: Spring Data JDBC(JdbcClient) 선택, jOOQ 배제
 
@@ -37,7 +37,7 @@
 
 ## D7. Konsist 아키텍처 테스트 위치
 
-- **결정**: `chronos-runtime/src/test`에 배치(전 레이어를 아는 유일한 모듈). `Konsist.scopeFromProject()`로 루트 전체 스캔.
+- **결정**: `tradex-runtime/src/test`에 배치(전 레이어를 아는 유일한 모듈). `Konsist.scopeFromProject()`로 루트 전체 스캔.
 - **근거**: 별도 arch-test 모듈은 명세의 고정 모듈 구조에 없음.
 
 ## D8. event_store에 `event_id UUID UNIQUE` 컬럼 추가 (스케치 대비 변경)
@@ -45,9 +45,9 @@
 - **결정**: 명세의 DDL 스케치에 `event_id` 컬럼을 추가했다.
 - **근거**: `DomainEvent.correctionOf`는 EventId를 가리키는데 스케치의 `correction_of`는 global_seq FK다. eventId → global_seq 해석과 정정 대상 검증(존재·타입 일치)을 위해 조회 가능한 UNIQUE 컬럼이 필요하다. 명세 스스로 "조정 가능, 의도 유지"를 허용.
 
-## D9. Postgres 어댑터를 chronos-membrane에 배치
+## D9. Postgres 어댑터를 tradex-membrane에 배치
 
-- **결정**: `PostgresEventStore`/`PostgresSnapshotStore`는 `io.chronos.membrane.store`에 둔다.
+- **결정**: `PostgresEventStore`/`PostgresSnapshotStore`는 `io.tradex.membrane.store`에 둔다.
 - **근거**: 저장된 표현(JSON + 버전)과 도메인 객체 사이의 변환이 곧 진화막의 일이다. 스토어는 읽는 순간 upcast를 강제하는 지점이므로 serde와 같은 모듈에 있어야 "옛 스키마가 코어에 새는" 경로가 원천 차단된다. 의존 방향(membrane → core)도 유지된다.
 
 ## D10. 셀 마이그레이션 중 쓰기: **거절(REJECTED)** (M5)
@@ -73,12 +73,12 @@
 
 ## D14. 역직렬화는 미지 필드를 무시 (FAIL_ON_UNKNOWN_PROPERTIES off)
 
-- **결정**: ChronosJson mapper는 모르는 JSON 필드를 무시한다.
+- **결정**: TradexJson mapper는 모르는 JSON 필드를 무시한다.
 - **근거**: 진화막의 forward-compatibility — 새 필드가 추가된 페이로드를 구버전 코드가 읽어도 깨지지 않아야 한다. 인터페이스 기본 프로퍼티(correctionOf 등)가 직렬화엔 포함되지만 생성자에 없는 클래스(사가 이벤트)의 왕복도 이걸로 성립한다. 필수 필드 누락은 Kotlin 생성자 바인딩이 여전히 실패시키므로 upcaster 결번은 감춰지지 않는다. 회귀 테스트: `SagaEventRoundTripTest`.
 
 ## D15. Postgres 셀 파티션 = 테이블 분리 (event_store_0..N)
 
-- **결정**: `chronos.storage=POSTGRES`일 때 셀마다 `event_store_<cellId>` 테이블을 생성한다.
+- **결정**: `tradex.storage=POSTGRES`일 때 셀마다 `event_store_<cellId>` 테이블을 생성한다.
 - **근거**: 단일 테이블 + cell_id 컬럼 방식은 마이그레이션의 "스트림 복사"가 UNIQUE(aggregate_id, seq_no)와 충돌해 물리적으로 불가능하다. 테이블 분리는 파티션 격리를 정직하게 모델링하고 복사·tombstone·blast radius가 실제로 성립한다.
 
 ## D16. docker-compose 호스트 포트 55432
@@ -86,7 +86,7 @@
 - **결정**: 데모 Postgres는 호스트 55432에 바인딩한다 (컨테이너 내부는 5432).
 - **근거**: 개발 머신에 로컬 PostgreSQL이 5432를 점유한 경우가 흔해(이 저장소의 개발 환경 포함) 기본 포트는 `docker compose up`부터 실패한다.
 
-## D17. 레거시 tradexServer 기능의 CHRONOS 재구현 — 별도 `tradex-app` 모듈
+## D17. 레거시 tradexServer 기능의 TradeX 재구현 — 별도 `tradex-app` 모듈
 
 - **결정**: 인증/회원가입/멤버를 example-app과 분리된 `tradex-app` 모듈로 재구현한다. API 계약(경로 `/api/v1/registration`, `/api/v1/auth/*`, BaseResponse 봉투, refresh HttpOnly 쿠키)과 도메인 규칙(비밀번호 정책 12자+3종, 잠금 5회/30분, 이메일 정규화, 전화 E.164 정규화, 만 14세)은 레거시(ee6ac1f)와 동일하게 유지한다.
 - **근거**: example-app은 명세가 고정한 주문/결제/재고 데모라 오염시키지 않는다. Spring Security 필터 체인은 레퍼런스 범위 밖이라 제외하고, ValidateAccessTokenUseCase는 `GET /api/v1/auth/me` 엔드포인트로 표면화한다.
@@ -94,7 +94,7 @@
 ## D18. Redis refresh 토큰 스토어 → User 애그리게잇 이벤트로 대체
 
 - **결정**: 레거시의 Redis(userId→jti, 블랙리스트 TTL)를 User 스트림의 `RefreshTokenIssued/RefreshTokenRevoked/AccessTokenBlacklisted` 이벤트로 대체한다. 회전(reissue) = Revoked+Issued 원자 배치, 재사용 감지(jti 불일치) = 활성 토큰 방어적 폐기, TTL = 상태의 expiresAt을 조회 시각과 비교.
-- **근거**: CHRONOS v1은 Redis 금지. 단일 활성 세션 정책(레거시와 동일)이라 상태가 작고, 토큰 수명 주기가 감사 가능한 이벤트 히스토리로 남는 것이 오히려 이득이다.
+- **근거**: TradeX v1은 Redis 금지. 단일 활성 세션 정책(레거시와 동일)이라 상태가 작고, 토큰 수명 주기가 감사 가능한 이벤트 히스토리로 남는 것이 오히려 이득이다.
 
 ## D19. 잠금 결정은 이벤트에 기록 (SignInFailed가 failureCount·lockedUntil을 실어 나름)
 
@@ -113,8 +113,8 @@
 
 ## D22. tradex-app 단일 배포체 → 3개 독립 서비스로 재분리 (MSA)
 
-- **결정**: `tradex-app`을 없애고 `tradex-auth-service`(8081, User 소유), `tradex-member-service`(8082, Member 소유), `tradex-registration-service`(8083, 상태 없는 사가 오케스트레이터)로 분리했다. 각 서비스는 전용 Postgres 테이블 프리픽스(`tradex_auth_event_store_*` 등)로 완전히 격리된 자기 CHRONOS 패브릭을 갖는다. `example-app`은 삭제.
-- **근거**: 사용자가 "기능 한 개당 따로따로 MSA 느낌"을 명시적으로 요청. 프로세스 경계를 Bounded Context 경계와 일치시키는 것이 CHRONOS L5(온톨로지)의 취지와도 맞는다 — 이전에는 한 JVM 안에서 모듈로만 나뉘어 있어 "서비스 장애가 다른 서비스에 어떤 영향을 주는가"를 증명할 수 없었다.
+- **결정**: `tradex-app`을 없애고 `tradex-auth-service`(8081, User 소유), `tradex-member-service`(8082, Member 소유), `tradex-registration-service`(8083, 상태 없는 사가 오케스트레이터)로 분리했다. 각 서비스는 전용 Postgres 테이블 프리픽스(`tradex_auth_event_store_*` 등)로 완전히 격리된 자기 TradeX 패브릭을 갖는다. `example-app`은 삭제.
+- **근거**: 사용자가 "기능 한 개당 따로따로 MSA 느낌"을 명시적으로 요청. 프로세스 경계를 Bounded Context 경계와 일치시키는 것이 TradeX L5(온톨로지)의 취지와도 맞는다 — 이전에는 한 JVM 안에서 모듈로만 나뉘어 있어 "서비스 장애가 다른 서비스에 어떤 영향을 주는가"를 증명할 수 없었다.
 - **API 경계**: auth/member 각각 `/internal/*`(프로비저닝: prepare + PUT/DELETE 멱등)을 registration 전용으로 노출한다. registration은 상태를 갖지 않고 사가 이벤트만 자기 스토어에 남긴다.
 - **평문 비밀 전파 최소화**: 평문 비밀번호/PII는 각 소유 서비스의 prepare 엔드포인트 호출에서만 네트워크를 넘고, 그 응답(해시/암호문)만 사가 컨텍스트에 실린다 — registration-service는 평문을 저장하지도, 재전송하지도 않는다.
 - **장애 모델**: 다운스트림 4xx 거절은 `ProvisioningRejectedException`으로 변환되어 사가에서 영구 실패로 취급되고, HTTP 응답의 status/code/message가 그대로 클라이언트까지 전달된다. 5xx/연결 실패(서비스 다운)는 그대로 전파되어 즉시 등록 실패 + 재시도 대상이 된다 — 실제로 auth-service를 강제 종료한 뒤 확인: member-service에는 고아 이벤트가 전혀 남지 않고(prepare 단계에서 이미 중단), 복구 후 정상 등록이 재개됨을 curl로 검증했다.

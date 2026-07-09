@@ -1,26 +1,24 @@
 server:
-  port: 8081
+  port: ${TRADEX_AUTH_PORT:8081}
 
 spring:
   application:
     name: tradex-auth
   datasource:
-    url: jdbc:postgresql://localhost:55432/chronos
-    username: chronos
-    password: chronos
-
-chronos:
-  storage: POSTGRES
-  cell-count: 3
-  ontology-dir: ontology
-  table-prefix: tradex_auth_event_store
+    url: ${TRADEX_DB_URL:jdbc:postgresql://localhost:55432/tradex}
+    username: ${TRADEX_DB_USERNAME:tradex}
+    password: ${TRADEX_DB_PASSWORD:tradex}
 
 tradex:
+  storage: ${TRADEX_STORAGE:POSTGRES}
+  cell-count: ${TRADEX_CELL_COUNT:3}
+  ontology-dir: ${TRADEX_ONTOLOGY_DIR:ontology}
+  table-prefix: tradex_auth_event_store
   auth:
     jwt:
-      issuer: tradex
-      access-ttl: 15m
-      refresh-ttl: 14d
-      key-id: tradex-rs256
-      private-key-path: secrets/jwt-private.pem
-      public-key-path: secrets/jwt-public.pem
+      issuer: ${TRADEX_AUTH_JWT_ISSUER:tradex}
+      access-ttl: ${TRADEX_AUTH_JWT_ACCESS_TTL:15m}
+      refresh-ttl: ${TRADEX_AUTH_JWT_REFRESH_TTL:14d}
+      key-id: ${TRADEX_AUTH_JWT_KEY_ID:tradex-rs256}
+      private-key-path: ${TRADEX_AUTH_JWT_PRIVATE_KEY_PATH:secrets/jwt-private.pem}
+      public-key-path: ${TRADEX_AUTH_JWT_PUBLIC_KEY_PATH:secrets/jwt-public.pem}
