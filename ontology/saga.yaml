@@ -1,0 +1,47 @@
+context: saga
+
+terms:
+  - term: 사가
+    definition: 여러 step의 로컬 트랜잭션과 보상으로 이루어진 장기 실행 프로세스. 엔진 자체가 이벤트소싱된다.
+  - term: 보상(compensation)
+    definition: 성공한 step의 효과를 의미적으로 되돌리는 역방향 액션. 역순으로 실행된다.
+  - term: 멱등성 키
+    definition: sagaId + stepName + phase + attempt 조합. 포트가 재시도 중복 호출을 흡수하는 근거.
+
+schemas:
+  - type: SagaStarted
+    version: 1
+    status: APPROVED
+    fields: [sagaName, contextJson]
+  - type: SagaStepSucceeded
+    version: 1
+    status: APPROVED
+    fields: [sagaName, stepName, attempt]
+  - type: SagaStepFailed
+    version: 1
+    status: APPROVED
+    fields: [sagaName, stepName, attempt, reason]
+  - type: SagaStepTimedOut
+    version: 1
+    status: APPROVED
+    fields: [sagaName, stepName, attempt]
+  - type: SagaCompensationStarted
+    version: 1
+    status: APPROVED
+    fields: [sagaName, fromStepName]
+  - type: SagaCompensationSucceeded
+    version: 1
+    status: APPROVED
+    fields: [sagaName, stepName, attempt]
+  - type: SagaCompensationFailed
+    version: 1
+    status: APPROVED
+    fields: [sagaName, stepName, attempt, reason]
+  - type: SagaCompleted
+    version: 1
+    status: APPROVED
+    fields: [sagaName]
+  - type: SagaCompensated
+    version: 1
+    status: APPROVED
+    fields: [sagaName]

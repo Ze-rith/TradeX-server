@@ -1,0 +1,11 @@
+context: order
+
+schemas:
+  - type: OrderPlaced
+    version: 3
+    status: APPROVED
+    fields: [amount, currency]
+  - type: StockReserved
+    version: 1
+    status: DRAFT
+    fields: [quantity]

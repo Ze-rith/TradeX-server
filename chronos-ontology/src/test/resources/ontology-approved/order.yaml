@@ -1,0 +1,15 @@
+context: order
+
+terms:
+  - term: 주문
+    definition: 고객이 상품 구매 의사를 확정한 사실
+
+schemas:
+  - type: OrderPlaced
+    version: 3
+    status: APPROVED
+    fields: [amount, currency]
+  - type: StockReserved
+    version: 1
+    status: APPROVED
+    fields: [quantity]

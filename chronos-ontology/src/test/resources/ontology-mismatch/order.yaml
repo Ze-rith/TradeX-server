@@ -1,0 +1,11 @@
+context: order
+
+schemas:
+  - type: OrderPlaced
+    version: 2
+    status: APPROVED
+    fields: [amount]
+  - type: PaymentReserved
+    version: 1
+    status: APPROVED
+    fields: [amount]
