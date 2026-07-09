@@ -1,0 +1,21 @@
+context: order
+
+terms:
+  - term: 주문
+    definition: 고객이 상품 구매 의사를 확정한 사실. PLACED → CONFIRMED | CANCELLED.
+  - term: 가격 정정
+    definition: 과거 주문 금액의 소급 수정. 원본 이벤트는 보존되고 valid-time 관점의 진실만 바뀐다.
+
+schemas:
+  - type: OrderPlaced
+    version: 1
+    status: APPROVED
+    fields: [productName, amount, currency]
+  - type: OrderConfirmed
+    version: 1
+    status: APPROVED
+    fields: []
+  - type: OrderCancelled
+    version: 1
+    status: APPROVED
+    fields: [reason]

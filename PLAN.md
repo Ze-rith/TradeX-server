@@ -96,10 +96,10 @@
 
 ## Definition of Done 체크리스트
 
-- [ ] 전 모듈 `./gradlew build` 그린 (Konsist, 리플레이 게이트, ontologyValidate 포함)
-- [ ] chronos-core에 Spring/Jackson import 0 (Konsist 검증)
-- [ ] 모델 체커 반례 데모 테스트 ≥ 1
-- [ ] bi-temporal asOf/asAt 차이 테스트 통과
-- [ ] RYW가 프로젝션 지연 주입에도 자기 쓰기 관측
-- [ ] 셀 마이그레이션 전후 상태 해시 동일
-- [ ] README curl 시나리오가 `docker compose up` + 앱 기동만으로 재현
+- [x] 전 모듈 `./gradlew build` 그린 (Konsist, 리플레이 게이트, ontologyValidate 포함)
+- [x] chronos-core에 Spring/Jackson import 0 (Konsist 검증)
+- [x] 모델 체커 반례 데모 테스트 ≥ 1
+- [x] bi-temporal asOf/asAt 차이 테스트 통과
+- [x] RYW가 프로젝션 지연 주입에도 자기 쓰기 관측
+- [x] 셀 마이그레이션 전후 상태 해시 동일
+- [x] README curl 시나리오가 `docker compose up` + 앱 기동만으로 재현

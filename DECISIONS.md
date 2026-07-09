@@ -70,3 +70,18 @@
 
 - **결정**: Gradle 태스크는 각 모듈 `src/main/kotlin`을 정규식으로 스캔해 `@EventSchema(type, version)`을 수집한다. 런타임 기동 가드(OntologyGuard)는 EventSchemaRegistry(리플렉션 기반)로 같은 검사를 이중으로 수행한다.
 - **근거**: buildSrc가 프로젝트 모듈의 컴파일 산출물에 의존하면 순환이 생긴다. 애노테이션 표기는 named-argument 형식으로 컨벤션이 고정돼 있어 정규식으로 안전하고, 빌드 게이트(태스크)와 기동 게이트(가드)가 서로를 보완한다. 네거티브 검증 완료(버전 변조 → 빌드 실패 확인).
+
+## D14. 역직렬화는 미지 필드를 무시 (FAIL_ON_UNKNOWN_PROPERTIES off)
+
+- **결정**: ChronosJson mapper는 모르는 JSON 필드를 무시한다.
+- **근거**: 진화막의 forward-compatibility — 새 필드가 추가된 페이로드를 구버전 코드가 읽어도 깨지지 않아야 한다. 인터페이스 기본 프로퍼티(correctionOf 등)가 직렬화엔 포함되지만 생성자에 없는 클래스(사가 이벤트)의 왕복도 이걸로 성립한다. 필수 필드 누락은 Kotlin 생성자 바인딩이 여전히 실패시키므로 upcaster 결번은 감춰지지 않는다. 회귀 테스트: `SagaEventRoundTripTest`.
+
+## D15. Postgres 셀 파티션 = 테이블 분리 (event_store_0..N)
+
+- **결정**: `chronos.storage=POSTGRES`일 때 셀마다 `event_store_<cellId>` 테이블을 생성한다.
+- **근거**: 단일 테이블 + cell_id 컬럼 방식은 마이그레이션의 "스트림 복사"가 UNIQUE(aggregate_id, seq_no)와 충돌해 물리적으로 불가능하다. 테이블 분리는 파티션 격리를 정직하게 모델링하고 복사·tombstone·blast radius가 실제로 성립한다.
+
+## D16. docker-compose 호스트 포트 55432
+
+- **결정**: 데모 Postgres는 호스트 55432에 바인딩한다 (컨테이너 내부는 5432).
+- **근거**: 개발 머신에 로컬 PostgreSQL이 5432를 점유한 경우가 흔해(이 저장소의 개발 환경 포함) 기본 포트는 `docker compose up`부터 실패한다.

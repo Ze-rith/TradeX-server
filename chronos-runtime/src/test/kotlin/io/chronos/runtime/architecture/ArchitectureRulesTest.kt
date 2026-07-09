@@ -46,12 +46,17 @@ class ArchitectureRulesTest {
     }
 
     @Test
-    fun `example-app 도메인 패키지는 chronos-core 추상화만 import한다`() {
+    fun `example-app 도메인 패키지는 chronos 레이어 중 core 추상화만 import한다`() {
+        // 앱 자신의 코드(io.chronos.example.*)는 허용 — 규칙의 대상은 chronos 레이어 침범이다
         val bad = mainFilesOf("example-app")
             .filter { it.packagee?.name?.contains(".domain") == true }
             .flatMap { file ->
                 file.imports.map { it.name }
-                    .filter { it.startsWith("io.chronos.") && !it.startsWith("io.chronos.core.") }
+                    .filter {
+                        it.startsWith("io.chronos.") &&
+                            !it.startsWith("io.chronos.core.") &&
+                            !it.startsWith("io.chronos.example.")
+                    }
                     .map { "${file.path} -> $it" }
             }
         withClue("도메인 패키지가 core 외의 chronos 레이어를 import:\n${bad.joinToString("\n")}") { bad.shouldBeEmpty() }
