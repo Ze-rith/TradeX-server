@@ -26,7 +26,7 @@ import org.springframework.context.annotation.Configuration
 @Configuration
 @EnableConfigurationProperties(ServiceEndpoints::class)
 class RegistrationWiring {
-    /** 이 서비스의 스토어에는 사가 엔진 이벤트만 기록된다. */
+
     @Bean
     fun sagaEventSchemas(): EventSchemaContributor = EventSchemaContributor { registry ->
         registry.register(SagaStarted::class)

@@ -28,7 +28,6 @@ data class SignInRequest(
 data class TokenResponse(val accessToken: String, val expiresIn: Long)
 data class MeResponse(val userId: String, val role: String)
 
-/** 레거시 AuthCookies와 동일: HttpOnly + Secure + SameSite=Strict, path=/api/v1/auth. */
 object AuthCookies {
     const val REFRESH_COOKIE_NAME = "refresh_token"
     private const val REFRESH_COOKIE_PATH = "/api/v1/auth"
@@ -90,7 +89,6 @@ class AuthController(
         return BaseResponse.ok()
     }
 
-    /** 레거시 ValidateAccessTokenUseCase의 표면화 (DECISIONS.md D17). */
     @GetMapping("/me")
     fun me(request: HttpServletRequest): BaseResponse<MeResponse> {
         val access = extractBearer(request) ?: throw TokenInvalidException()

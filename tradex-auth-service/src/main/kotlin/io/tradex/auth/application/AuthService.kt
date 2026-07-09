@@ -25,10 +25,6 @@ import io.tradex.auth.readmodel.AuthReadModel
 import java.time.Clock
 import org.springframework.stereotype.Service
 
-/**
- * 레거시 SignIn/Reissue/SignOut/Validate UseCase의 이벤트소싱 재구현.
- * 모든 상태 변경은 User 스트림 append, 모든 판단은 리플레이된 [UserState]에서.
- */
 @Service
 class AuthService(
     private val fabric: CellFabric,
@@ -55,7 +51,7 @@ class AuthService(
 
         val seqNo = repo.currentSeqNo(userId)
         if (!passwordHasher.matches(rawPassword, requireNotNull(user.passwordHash))) {
-            // 잠금 여부를 여기서 결정해 이벤트에 기록한다 (D19)
+
             val nextCount = user.failureCount + 1
             val lockedUntil = if (nextCount >= lockPolicy.failureThreshold) now.plus(lockPolicy.lockDuration) else user.lockedUntil
             fabric.append("User", userId, seqNo, listOf(SignInFailed(userId, now, nextCount, lockedUntil)))
@@ -65,7 +61,7 @@ class AuthService(
         val tokenPair = tokenIssuer.issue(TokenSubject(userId.toString(), DEFAULT_ROLE))
         val events = buildList {
             add(SignInSucceeded(userId, now))
-            // 단일 활성 세션: 기존 refresh가 있으면 회전 폐기
+
             user.activeRefreshJti?.let { add(RefreshTokenRevoked(userId, now, it, reason = "superseded by new sign-in")) }
             add(RefreshTokenIssued(userId, now, tokenPair.refreshToken.jti, tokenPair.refreshToken.expiresAt))
         }
@@ -73,7 +69,6 @@ class AuthService(
         return tokenPair
     }
 
-    /** refresh 회전: 활성 jti 일치 검사 → Revoked+Issued 원자 배치. 불일치는 재사용 신호 → 방어적 전면 폐기. */
     fun reissue(rawRefreshToken: String): TokenPair {
         val verified = tokenVerifier.verifyRefresh(rawRefreshToken)
         val userId = AggregateId.of(verified.subject.userId)
@@ -125,7 +120,6 @@ class AuthService(
         }
     }
 
-    /** 레거시 ValidateAccessTokenUseCase: 서명·만료 검증 + 블랙리스트 확인. */
     fun validateAccess(rawAccessToken: String): TokenSubject {
         val verified = tokenVerifier.verifyAccess(rawAccessToken)
         val userId = AggregateId.of(verified.subject.userId)

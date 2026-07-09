@@ -7,9 +7,6 @@ import io.tradex.core.event.EventRecord
 import java.time.Clock
 import java.time.Instant
 
-/**
- * 단일 JVM 인메모리 이벤트 스토어. [clock]은 transactionTime 부여용 (테스트에서 주입).
- */
 class InMemoryEventStore(
     private val clock: Clock = Clock.systemUTC(),
     private val cellId: Int = 0,
@@ -75,7 +72,7 @@ class InMemoryEventStore(
 
         val stream = streams.getOrPut(aggregateId) { mutableListOf() }
         for (record in records.sortedBy { it.seqNo }) {
-            // seqNo·transactionTime은 원본 보존, globalSeq·cellId만 이 파티션 기준으로 재부여
+
             val imported = record.copy(globalSeq = all.size + 1L, cellId = cellId)
             all.add(imported)
             stream.add(imported)

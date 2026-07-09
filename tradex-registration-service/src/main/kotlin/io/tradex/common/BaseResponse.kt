@@ -1,6 +1,5 @@
 package io.tradex.common
 
-/** 레거시 tradexServer의 응답 봉투를 그대로 유지한다. */
 class BaseResponse<T> private constructor(
     val code: String,
     val message: String,

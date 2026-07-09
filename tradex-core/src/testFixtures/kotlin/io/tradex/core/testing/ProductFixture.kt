@@ -6,7 +6,6 @@ import io.tradex.core.event.DomainEvent
 import io.tradex.core.event.EventId
 import java.time.Instant
 
-/** bi-temporal 시나리오 검증용 미니 도메인. */
 data class Product(val name: String? = null, val price: Long? = null)
 
 sealed interface ProductEvent : DomainEvent

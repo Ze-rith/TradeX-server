@@ -49,10 +49,10 @@ class SagaEngineTest {
         outcome shouldBe SagaOutcome.COMPENSATED
         eventNames() shouldContainInOrder listOf(
             "SagaStarted",
-            "StepSucceeded",                 // reservePayment
-            "StepFailed", "StepFailed",      // deductStock 시도 2회 소진
+            "StepSucceeded",
+            "StepFailed", "StepFailed",
             "CompensationStarted",
-            "CompensationSucceeded",         // reservePayment 해제
+            "CompensationSucceeded",
             "SagaCompensated",
         )
         scenario.payment.reserved shouldBe 10_000
@@ -109,13 +109,12 @@ class SagaEngineTest {
 
         shouldThrow<IllegalStateException> { engine(scenario, crashing).start(sagaId, scenario.context) }
             .message shouldContain "simulated crash"
-        scenario.payment.reserved shouldBe 10_000 // step1은 이미 실행됨
+        scenario.payment.reserved shouldBe 10_000
 
-        // 새 엔진 인스턴스가 히스토리(SagaStarted의 컨텍스트 포함)만으로 재개
         val resumed = engine(scenario, SimulatedStepExecutor(emptyMap())).resume(sagaId)
 
         resumed shouldBe SagaOutcome.COMPLETED
-        scenario.payment.reserved shouldBe 10_000 // reservePayment가 두 번 실행되지 않았다
+        scenario.payment.reserved shouldBe 10_000
         scenario.stock.deducted shouldBe 1
     }
 

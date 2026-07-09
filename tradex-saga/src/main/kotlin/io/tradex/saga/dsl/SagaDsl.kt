@@ -9,19 +9,6 @@ import io.tradex.saga.fixed
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.seconds
 
-/**
- * ```
- * val placeOrder = saga<OrderCtx>("PlaceOrder") {
- *     step("reservePayment") {
- *         action { paymentPort.reserve(it.idempotencyKey, it.ctx.amount) }
- *         compensate { paymentPort.release(it.idempotencyKey, it.ctx.amount) }
- *         timeout(5.seconds)
- *         retry(times = 3, backoff = exponential(200.milliseconds))
- *         compensationRetry(times = 3)
- *     }
- * }
- * ```
- */
 fun <C> saga(name: String, block: SagaBuilder<C>.() -> Unit): SagaDefinition<C> =
     SagaBuilder<C>(name).apply(block).build()
 

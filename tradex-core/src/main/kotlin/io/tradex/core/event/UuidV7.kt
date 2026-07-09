@@ -3,10 +3,6 @@ package io.tradex.core.event
 import java.security.SecureRandom
 import java.util.UUID
 
-/**
- * RFC 9562 UUIDv7 생성기.
- * 상위 48비트 = unix epoch millis → eventId 자체가 대략적 시간 순서를 가진다.
- */
 object UuidV7 {
     private val random = SecureRandom()
 
@@ -17,6 +13,5 @@ object UuidV7 {
         return UUID(msb, lsb)
     }
 
-    /** UUIDv7의 타임스탬프(unix millis) 추출. */
     fun timestampOf(uuid: UUID): Long = uuid.mostSignificantBits ushr 16
 }

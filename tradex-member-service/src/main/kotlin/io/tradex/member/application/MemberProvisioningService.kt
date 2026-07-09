@@ -25,11 +25,6 @@ data class PreparedMember(
     val phoneNumberHash: String,
 )
 
-/**
- * registration-service가 사가 step에서 호출하는 내부 프로비저닝 유스케이스.
- * PII 암호화 키는 이 서비스가 소유한다 — 평문 PII는 프리페어 요청 안에서만 존재하고,
- * 사가 컨텍스트·이벤트에는 암호문만 실린다 (DECISIONS.md D21).
- */
 @Service
 class MemberProvisioningService(
     private val fabric: CellFabric,
@@ -57,7 +52,7 @@ class MemberProvisioningService(
 
     fun create(memberId: AggregateId, member: PreparedMember) {
         val stream = fabric.readStream(memberId)
-        if (stream.any { it.event is MemberCreated }) return // 사가 재시도 멱등
+        if (stream.any { it.event is MemberCreated }) return
 
         readModel.catchUp()
         readModel.phoneIndex.memberIdOf(member.phoneNumberHash)?.let { existing ->
@@ -81,7 +76,7 @@ class MemberProvisioningService(
     fun revoke(memberId: AggregateId, reason: String) {
         val repo = AggregateRepository(MemberAggregate, fabric.cellFor(memberId).store)
         val state = repo.currentState(memberId)
-        if (!state.created || state.revoked) return // 보상 재시도 멱등
+        if (!state.created || state.revoked) return
         fabric.append("Member", memberId, repo.currentSeqNo(memberId), listOf(MemberCreationRevoked(memberId, clock.instant(), reason)))
     }
 

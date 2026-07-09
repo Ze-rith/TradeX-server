@@ -32,12 +32,11 @@ data class JwtProperties(
     val accessTtl: Duration = Duration.ofMinutes(15),
     val refreshTtl: Duration = Duration.ofDays(14),
     val keyId: String = "tradex-rs256",
-    /** PEM 파일 경로. 없으면 기동 시 임시 키쌍 생성 (데모/테스트용, DECISIONS.md D21). */
+
     val privateKeyPath: String = "secrets/jwt-private.pem",
     val publicKeyPath: String = "secrets/jwt-public.pem",
 )
 
-/** 레거시 JwtKeyLoader 대체: PEM(PKCS8/X509) 로드, 파일이 없으면 임시 RSA 2048 생성. */
 object JwtKeys {
     private val log = LoggerFactory.getLogger(JwtKeys::class.java)
 

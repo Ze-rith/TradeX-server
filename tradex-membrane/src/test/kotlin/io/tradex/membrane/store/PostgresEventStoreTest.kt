@@ -131,7 +131,6 @@ class PostgresEventStoreTest {
         snapshots.load(id)!!.state.price shouldBe 280_000
         snapshotting.currentState(id).price shouldBe 280_000
 
-        // 스냅샷 시점 이전 이벤트를 겨냥한 소급 정정 → 스냅샷을 버리고 전체 리플레이해야 한다
         store.append("Product", id, 2, listOf(PriceChanged(id, v2, 275_000, correctionOf = original.eventId)))
         snapshotting.currentState(id).price shouldBe 275_000
     }

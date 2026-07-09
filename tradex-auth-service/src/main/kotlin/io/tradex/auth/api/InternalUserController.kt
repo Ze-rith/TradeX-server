@@ -28,10 +28,6 @@ data class RegisterUserRequest(
     @field:NotBlank val passwordHash: String,
 )
 
-/**
- * registration-service 전용 내부 API (서비스 간 신뢰 경계 내부).
- * PUT/DELETE는 사가 step/보상에서 재시도되므로 멱등이다.
- */
 @RestController
 @RequestMapping("/internal")
 class InternalUserController(private val provisioning: UserProvisioningService) {

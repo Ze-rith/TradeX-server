@@ -7,10 +7,6 @@ import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.time.Duration
 import kotlin.time.Duration.Companion.milliseconds
 
-/**
- * 이벤트 스토어를 폴링해 프로젝션을 따라잡게 하는 비동기 파이프라인 (단일 JVM 시뮬레이션).
- * [beforeApply]는 테스트가 인위적 프로젝션 지연을 주입하는 훅이다.
- */
 class Projector(
     private val store: EventStore,
     private val projection: Projection,
@@ -22,7 +18,6 @@ class Projector(
     private val running = AtomicBoolean(false)
     private var worker: Thread? = null
 
-    /** 대기 중인 이벤트를 한 번 처리하고 처리 건수를 반환한다. */
     fun catchUpOnce(): Int {
         val records = store.readAll(afterGlobalSeq = offsets.lastProcessed(projection.name), limit = batchSize)
         for (record in records) {

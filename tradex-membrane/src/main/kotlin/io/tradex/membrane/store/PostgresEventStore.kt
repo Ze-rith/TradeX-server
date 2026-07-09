@@ -20,15 +20,6 @@ import org.springframework.jdbc.core.simple.JdbcClient
 import org.springframework.jdbc.datasource.DataSourceTransactionManager
 import org.springframework.transaction.support.TransactionTemplate
 
-/**
- * event_store 테이블 기반 구현 (DECISIONS.md D2: JdbcClient + 손으로 쓴 SQL).
- *
- * 낙관적 동시성: 애플리케이션 레벨 seq_no 검사 + UNIQUE(aggregate_id, seq_no)가 최후 방어선.
- * 경쟁으로 UNIQUE 위반이 나면 [OptimisticConcurrencyException]으로 변환한다.
- *
- * [tableName]으로 셀 파티션을 테이블 단위로 분리한다 (예: event_store_0). 이렇게 해야
- * 셀 마이그레이션의 "스트림 복사"가 물리적으로 진짜 복사가 되고 UNIQUE 제약과 충돌하지 않는다.
- */
 class PostgresEventStore(
     dataSource: DataSource,
     private val serde: EventSerde,
@@ -68,8 +59,7 @@ class PostgresEventStore(
         val current = currentSeqNo(aggregateId)
         if (current != expectedSeqNo) throw OptimisticConcurrencyException(aggregateId, expectedSeqNo, current)
 
-        // 이번 배치에서 막 삽입된 이벤트도 정정 대상이 될 수 있다
-        val insertedInBatch = HashMap<EventId, Pair<Long, String>>() // eventId -> (globalSeq, eventType)
+        val insertedInBatch = HashMap<EventId, Pair<Long, String>>()
         val transactionTime = clock.instant()
 
         return events.mapIndexed { index, event ->
@@ -128,7 +118,6 @@ class PostgresEventStore(
         return globalSeq
     }
 
-    /** 셀 마이그레이션용: seqNo·transactionTime을 보존한 채 이 파티션 테이블로 복사한다. */
     override fun importStream(records: List<EventRecord<DomainEvent>>) {
         require(records.isNotEmpty()) { "records must not be empty" }
         val aggregateId = records.first().aggregateId

@@ -12,7 +12,6 @@ import org.springframework.web.bind.MethodArgumentNotValidException
 import org.springframework.web.bind.annotation.ExceptionHandler
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
-/** code 값은 registration-service HTTP 어댑터가 그대로 전달하므로 구체적으로 유지한다. */
 @RestControllerAdvice
 class MemberErrorHandler {
     @ExceptionHandler(PhoneNumberAlreadyExistsException::class)

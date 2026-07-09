@@ -6,7 +6,6 @@ import java.time.Instant
 import java.time.ZoneId
 import java.time.ZoneOffset
 
-/** transactionTime을 결정론적으로 제어하기 위한 테스트용 시계. */
 class MutableClock(
     private var current: Instant,
     private val zone: ZoneId = ZoneOffset.UTC,

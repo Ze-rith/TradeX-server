@@ -13,14 +13,12 @@ import com.fasterxml.jackson.module.kotlin.jacksonMapperBuilder
 import io.tradex.core.event.AggregateId
 import io.tradex.core.event.EventId
 
-/** TradeX 페이로드 직렬화용 ObjectMapper 구성. ID value class는 UUID 문자열로 나간다. */
 object TradexJson {
     fun mapper(): ObjectMapper = jacksonMapperBuilder()
         .addModule(JavaTimeModule())
         .addModule(identifierModule())
         .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS)
-        // 진화막의 forward-compatibility: 모르는 필드는 무시한다. 필수 필드 누락은
-        // Kotlin 생성자 바인딩이 여전히 실패시키므로 upcaster 결번은 감춰지지 않는다.
+
         .disable(com.fasterxml.jackson.databind.DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES)
         .build()
 

@@ -1,5 +1,5 @@
 plugins {
-    id("tradex.spring-library") // Spring 코드는 없고 Boot BOM(버전 관리)만 사용
+    id("tradex.spring-library")
 }
 
 dependencies {

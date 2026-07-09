@@ -5,10 +5,6 @@ import io.kotest.assertions.withClue
 import io.kotest.matchers.collections.shouldBeEmpty
 import org.junit.jupiter.api.Test
 
-/**
- * 명세 §2의 의존 방향 규칙을 소스 레벨에서 강제한다.
- * 위반 시 "파일 → 금지된 import" 목록이 실패 메시지로 출력된다.
- */
 class ArchitectureRulesTest {
     private val files = Konsist.scopeFromProject().files
 
@@ -36,7 +32,7 @@ class ArchitectureRulesTest {
             "tradex-saga" to listOf("io.tradex.core.", "io.tradex.membrane.", "io.tradex.saga."),
             "tradex-router" to listOf("io.tradex.core.", "io.tradex.router."),
             "tradex-ontology" to listOf("io.tradex.core.", "io.tradex.membrane.", "io.tradex.ontology."),
-            // tradex-cell, tradex-runtime은 전 레이어 의존 허용이므로 규칙 없음
+
         )
 
         val bad = allowedTradexImports.flatMap { (module, allowed) ->
@@ -47,7 +43,7 @@ class ArchitectureRulesTest {
 
     @Test
     fun `앱 도메인 패키지는 tradex 레이어 중 core 추상화만 import한다`() {
-        // 앱 자신의 코드(자기 루트 패키지)는 허용 — 규칙의 대상은 tradex 레이어 침범이다
+
         val apps = mapOf(
             "tradex-auth-service" to "io.tradex.",
             "tradex-member-service" to "io.tradex.",

@@ -36,10 +36,6 @@ class FakeStockPort {
     }
 }
 
-/**
- * 주문/결제/재고 사가. [compensationRetries] = 1이면 "보상 도중 타임아웃 → 재시도 소진"이
- * 미처리로 남는 의도적 결함 버전, 3이면 수정본.
- */
 class PlaceOrderScenario(compensationRetries: Int) : SagaScenario<OrderCtx> {
     val payment = FakePaymentPort()
     val stock = FakeStockPort()

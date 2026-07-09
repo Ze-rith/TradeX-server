@@ -7,9 +7,6 @@ import io.kotest.matchers.shouldBe
 import java.time.Instant
 import org.junit.jupiter.api.Test
 
-/**
- * L1 인수 테스트: OrderPlaced v1(price) → v2(amount) → v3(+currency="KRW") 체인.
- */
 class UpcasterChainTest {
     private val serde = orderSerde()
 
@@ -51,7 +48,7 @@ class UpcasterChainTest {
 
     @Test
     fun `체인에 결번이 있으면 조용히 통과시키지 않고 실패한다`() {
-        val gapped = orderSerde(upcasters = listOf(OrderPlacedV2ToV3())) // v1→v2 없음
+        val gapped = orderSerde(upcasters = listOf(OrderPlacedV2ToV3()))
 
         shouldThrow<MissingUpcasterException> { gapped.deserialize("OrderPlaced", 1, fixture(1)) }
     }

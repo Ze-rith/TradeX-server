@@ -11,16 +11,6 @@ import io.tradex.saga.StepResult
 import java.time.Clock
 import kotlin.time.Duration
 
-/**
- * 이벤트소싱 사가 오케스트레이터.
- *
- * 모든 진행 상황이 [EventStore]에 기록되므로, 크래시 후 [resume]은 히스토리 fold
- * ([SagaReplayState])만으로 정확한 재개 지점을 얻는다 — 완료된 step은 재실행되지 않는다.
- * 액션은 [StepExecutor] 봉합선 뒤에 있어 리플레이/모델체킹 시 mock으로 대체된다.
- *
- * 보상 재시도가 소진되면 터미널 이벤트 없이 [SagaOutcome.STUCK]을 반환한다.
- * 이 상태는 운영 개입 대상이며, 정의가 이 위험을 안고 있는지는 모델 체커로 검증한다.
- */
 class SagaEngine<C>(
     private val definition: SagaDefinition<C>,
     private val store: EventStore,
@@ -31,7 +21,6 @@ class SagaEngine<C>(
 ) {
     fun start(sagaId: AggregateId, context: C): SagaOutcome = run(sagaId, context)
 
-    /** 히스토리만으로 재개. 컨텍스트는 SagaStarted에서 복원한다. */
     fun resume(sagaId: AggregateId): SagaOutcome = run(sagaId, null)
 
     fun replayState(sagaId: AggregateId): SagaReplayState =
@@ -40,7 +29,7 @@ class SagaEngine<C>(
     private fun run(sagaId: AggregateId, providedContext: C?): SagaOutcome {
         val session = Session(sagaId)
         val state = SagaReplayState.from(session.history)
-        state.outcome?.let { return it } // 이미 터미널 — 아무것도 재실행하지 않는다
+        state.outcome?.let { return it }
 
         val context: C = when (val started = state.started) {
             null -> {
@@ -128,7 +117,7 @@ class SagaEngine<C>(
             }
 
             if (!compensated) {
-                // 보상 재시도 소진: 터미널 이벤트를 기록할 수 없다 — 보상이 완료되지 않았기 때문.
+
                 return SagaOutcome.STUCK
             }
         }
@@ -137,7 +126,6 @@ class SagaEngine<C>(
         return SagaOutcome.COMPENSATED
     }
 
-    /** 한 번의 run 동안의 스트림 append 커서. */
     private inner class Session(val sagaId: AggregateId) {
         val history: List<SagaEvent> = store.readStream(sagaId).map { it.event as SagaEvent }
         private var seqNo: Long = history.size.toLong()

@@ -11,10 +11,6 @@ import io.tradex.auth.contract.UserRegistered
 import io.tradex.auth.contract.UserRegistrationRevoked
 import java.time.Instant
 
-/**
- * 레거시 User 엔티티(가변 상태 + JPA)의 이벤트소싱 대체.
- * 잠금 해제는 이벤트 없이 시간 파생: `lockedUntil < now`면 잠기지 않은 것이다.
- */
 data class UserState(
     val registered: Boolean = false,
     val revoked: Boolean = false,
@@ -22,9 +18,9 @@ data class UserState(
     val passwordHash: String? = null,
     val failureCount: Int = 0,
     val lockedUntil: Instant? = null,
-    /** 단일 활성 refresh 세션 (레거시의 Redis userId→jti와 동일 정책). */
+
     val activeRefreshJti: String? = null,
-    /** 사인아웃된 access jti → 만료 시각. */
+
     val blacklist: Map<String, Instant> = emptyMap(),
 ) {
     val exists: Boolean get() = registered && !revoked

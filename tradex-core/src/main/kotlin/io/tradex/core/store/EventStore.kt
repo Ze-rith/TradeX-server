@@ -5,16 +5,6 @@ import io.tradex.core.event.DomainEvent
 import io.tradex.core.event.EventRecord
 import java.time.Instant
 
-/**
- * Append-only bi-temporal 이벤트 스토어 포트.
- *
- * 계약:
- * - [append]는 낙관적 동시성 제어: [expectedSeqNo]가 스트림의 현재 마지막 seqNo와 다르면
- *   [OptimisticConcurrencyException]. 새 스트림은 expectedSeqNo = 0.
- * - 정정 이벤트(correctionOf != null)는 같은 스트림의 기존 이벤트를, 그리고 같은 이벤트
- *   타입만 가리킬 수 있다. 원본 로우는 절대 변경/삭제되지 않는다.
- * - transactionTime은 스토어가 부여하며 불변.
- */
 interface EventStore {
     fun append(
         aggregateType: String,
@@ -23,23 +13,15 @@ interface EventStore {
         events: List<DomainEvent>,
     ): List<EventRecord<DomainEvent>>
 
-    /** 스트림을 seqNo 오름차순으로. [afterSeqNo] 이후만 (스냅샷 이후 리플레이용). */
     fun readStream(aggregateId: AggregateId, afterSeqNo: Long = 0L): List<EventRecord<DomainEvent>>
 
-    /** transactionTime ≤ [transactionTime] 인 레코드만 — "그 당시 시스템이 알던 모습"의 원료. */
     fun readStreamAsAt(aggregateId: AggregateId, transactionTime: Instant): List<EventRecord<DomainEvent>>
 
-    /** globalSeq > [afterGlobalSeq] 인 레코드를 순서대로 (프로젝션/캐치업용). */
     fun readAll(afterGlobalSeq: Long = 0L, limit: Int = 1_000): List<EventRecord<DomainEvent>>
 
-    /** 현재 최대 globalSeq. 비어 있으면 0. */
     fun lastGlobalSeq(): Long
 }
 
-/**
- * 셀 마이그레이션용 스트림 임포트. 원본의 seqNo·transactionTime을 **보존**해
- * bi-temporal 시맨틱이 이관 후에도 성립하게 한다. globalSeq는 대상 파티션이 새로 부여한다.
- */
 interface StreamImporter {
     fun importStream(records: List<EventRecord<DomainEvent>>)
 }

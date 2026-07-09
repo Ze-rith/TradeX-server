@@ -1,8 +1,5 @@
 package io.tradex.saga.engine
 
-/**
- * 사가 이벤트 히스토리의 순수 fold. 엔진 재기동/리플레이 시 여기서 재개 지점을 얻는다.
- */
 data class SagaReplayState(
     val started: SagaStarted? = null,
     val succeededSteps: List<String> = emptyList(),
@@ -43,6 +40,5 @@ enum class SagaOutcome {
     COMPLETED,
     COMPENSATED,
 
-    /** 보상 재시도 소진 — 터미널이 아니며 운영 개입이 필요한 상태. 모델 체커가 잡아야 할 표적. */
     STUCK,
 }

@@ -16,11 +16,6 @@ import org.springframework.stereotype.Service
 
 data class PreparedCredential(val email: String, val passwordHash: String)
 
-/**
- * registration-service가 사가 step에서 호출하는 내부 프로비저닝 유스케이스.
- * 사가 재시도를 흡수하기 위해 register/revoke는 **멱등**이다:
- * 이미 원하는 상태면 no-op, 낙관적 동시성은 스토어가 최후 방어.
- */
 @Service
 class UserProvisioningService(
     private val fabric: CellFabric,
@@ -28,7 +23,7 @@ class UserProvisioningService(
     private val passwordHasher: PasswordHasher,
     private val clock: Clock,
 ) {
-    /** 사가 시작 전 프리페어: 검증 + 해싱. 평문 비밀번호는 이 서비스 밖(사가 컨텍스트)에 남지 않는다. */
+
     fun prepareCredential(rawEmail: String, rawPassword: String): PreparedCredential {
         val email = Email.of(rawEmail)
         PasswordPolicy.validate(rawPassword, email)
@@ -39,7 +34,7 @@ class UserProvisioningService(
 
     fun register(userId: AggregateId, email: String, passwordHash: String) {
         val stream = fabric.readStream(userId)
-        if (stream.any { it.event is UserRegistered }) return // 사가 재시도 멱등
+        if (stream.any { it.event is UserRegistered }) return
 
         readModel.catchUp()
         readModel.emailIndex.userIdOf(email)?.let { existing ->
@@ -51,7 +46,7 @@ class UserProvisioningService(
     fun revoke(userId: AggregateId, reason: String) {
         val repo = AggregateRepository(UserAggregate, fabric.cellFor(userId).store)
         val state = repo.currentState(userId)
-        if (!state.registered || state.revoked) return // 보상 재시도 멱등
+        if (!state.registered || state.revoked) return
         fabric.append("User", userId, repo.currentSeqNo(userId), listOf(UserRegistrationRevoked(userId, clock.instant(), reason)))
     }
 }

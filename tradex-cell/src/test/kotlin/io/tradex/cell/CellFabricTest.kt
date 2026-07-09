@@ -26,13 +26,11 @@ class CellFabricTest {
 
         fabric.down(0)
 
-        // 죽은 셀의 aggregate → 명시적 실패
         shouldThrow<CellDownException> { fabric.readStream(onCell0) }
         shouldThrow<CellDownException> {
             fabric.append("Product", onCell0, 1, listOf(ProductRegistered(onCell0, t, "a2", 100)))
         }
 
-        // 다른 셀은 읽기/쓰기 모두 무사
         fabric.readStream(onCell1).size shouldBe 1
         fabric.append("Product", onCell1, 1, listOf(ProductRegistered(onCell1, t, "b2", 300)))
         fabric.readStream(onCell1).size shouldBe 2

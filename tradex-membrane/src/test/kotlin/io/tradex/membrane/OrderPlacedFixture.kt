@@ -8,12 +8,6 @@ import io.tradex.core.event.DomainEvent
 import io.tradex.core.event.EventId
 import java.time.Instant
 
-/**
- * 스키마 진화 시나리오 대상: OrderPlaced
- * - v1: 필드명 `price`
- * - v2: `price` → `amount` 개명
- * - v3: `currency` 필드 추가 (기본값 "KRW")
- */
 @EventSchema(type = "OrderPlaced", version = 3)
 data class OrderPlaced(
     override val aggregateId: AggregateId,

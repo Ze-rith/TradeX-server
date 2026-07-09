@@ -5,7 +5,6 @@ import io.tradex.member.contract.MemberCreated
 import io.tradex.member.contract.MemberCreationRevoked
 import io.tradex.member.contract.MemberEvent
 
-/** 상태에는 암호문과 해시만 있다 — 복호화는 조회 계층이 PiiCipher 포트로 수행. */
 data class MemberState(
     val created: Boolean = false,
     val revoked: Boolean = false,

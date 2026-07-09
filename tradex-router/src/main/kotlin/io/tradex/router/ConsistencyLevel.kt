@@ -1,6 +1,5 @@
 package io.tradex.router
 
-/** `X-Consistency` 헤더 값. 미지정 시 [EVENTUAL]. */
 enum class ConsistencyLevel(val headerValue: String) {
     STRONG("strong"),
     READ_YOUR_WRITES("read-your-writes"),

@@ -13,7 +13,6 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration.Companion.milliseconds
 import org.springframework.context.SmartLifecycle
 
-/** 전화번호 HMAC 해시 유니크 인덱스 (DECISIONS.md D20). */
 class PhoneIndexProjection : Projection {
     override val name = "phone-index"
     private val byHash = ConcurrentHashMap<String, AggregateId>()

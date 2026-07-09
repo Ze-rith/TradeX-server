@@ -17,8 +17,8 @@ class ReplayGateTest {
             state = OrderTestAggregate.evolve(state, event as OrderPlaced)
         })
 
-        gate.verify() // 실패가 있으면 여기서 AssertionError
-        state.amount shouldBe 15_000 + 22_000 + 9_900 // v1+v2+v3 전부 evolve됨
+        gate.verify()
+        state.amount shouldBe 15_000 + 22_000 + 9_900
     }
 
     @Test
@@ -29,7 +29,7 @@ class ReplayGateTest {
         val gate = ReplayGate(registry, EventSerde(registry, UpcasterChain(listOf(OrderPlacedV1ToV2(), OrderPlacedV2ToV3()))), applyEvolve = {})
 
         val failures = gate.failures()
-        failures.size shouldBe 2 // StockReserved v1, v2 둘 다 누락
+        failures.size shouldBe 2
         failures.forEach { it shouldContain "fixture 누락" }
         failures.first() shouldContain "StockReserved"
     }

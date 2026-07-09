@@ -21,7 +21,7 @@ class ConsistentHashRingTest {
             .groupingBy { it }.eachCount()
 
         counts.keys shouldBe setOf(0, 1, 2)
-        // 완전 균등은 아니어도 극단적 쏠림은 없어야 한다 (기대치 1000, 하한 500)
+
         counts.values.forEach { it shouldBeGreaterThan 500 }
     }
 
@@ -33,7 +33,6 @@ class ConsistentHashRingTest {
         val shrunk = ConsistentHashRing(cellIds = listOf(0, 1), virtualNodes = 128)
         val moved = ids.count { id -> before.getValue(id) != 2 && shrunk.route(id) != before.getValue(id) }
 
-        // cell 2 소속이 아니던 키 중 이동한 비율이 낮아야 consistent hashing이다
         val stayedPopulation = ids.count { before.getValue(it) != 2 }
         (moved * 100 / stayedPopulation) shouldBe 0
     }

@@ -20,7 +20,6 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 
-/** 애플리케이션이 자기 이벤트 클래스를 레지스트리에 등록하는 진입점. */
 fun interface EventSchemaContributor {
     fun contribute(registry: EventSchemaRegistry)
 }
@@ -42,10 +41,6 @@ class TradexConfiguration {
     fun sessionTokenCodec(props: TradexProperties): SessionTokenCodec =
         SessionTokenCodec(props.sessionSecret.toByteArray())
 
-    /**
-     * L5 가드: Bounded Context를 넘는 이벤트는 APPROVED 스키마만 —
-     * 위반 시 컨텍스트 초기화 단계에서 기동 실패 (fail-fast).
-     */
     @Bean
     fun ontologyStartupGuard(props: TradexProperties, registry: EventSchemaRegistry): OntologyStartupGuard {
         OntologyGuard.enforce(OntologyRegistry.load(Path.of(props.ontologyDir)), registry)
@@ -72,5 +67,4 @@ class TradexConfiguration {
     fun cellMigrator(fabric: CellFabric): CellMigrator = CellMigrator(fabric)
 }
 
-/** ontologyStartupGuard 빈의 마커 (검증은 빈 생성 시점에 이미 수행됨). */
 object OntologyStartupGuard

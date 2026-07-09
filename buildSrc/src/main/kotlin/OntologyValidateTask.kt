@@ -10,13 +10,6 @@ import org.gradle.api.tasks.PathSensitivity
 import org.gradle.api.tasks.TaskAction
 import org.yaml.snakeyaml.Yaml
 
-/**
- * 코드의 `@EventSchema(type, version)` 선언(프로덕션 소스 스캔)과
- * ontology 디렉토리의 YAML 레지스트리를 diff한다. 누락/버전 불일치 시 빌드 실패.
- *
- * 소스 정규식 스캔인 이유: buildSrc가 프로젝트 모듈(리플렉션 스캔에 필요)에
- * 의존하면 순환이 생긴다. 애노테이션 표기는 프로젝트 컨벤션으로 고정돼 있어 안전하다.
- */
 abstract class OntologyValidateTask : DefaultTask() {
     @get:InputDirectory
     @get:PathSensitive(PathSensitivity.RELATIVE)

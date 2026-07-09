@@ -54,7 +54,7 @@ class OntologyTest {
     @Test
     fun `전부 APPROVED이고 코드와 일치하면 가드를 통과한다`() {
         OntologyValidator.diff(load("ontology-approved"), codeRegistry).shouldBeEmpty()
-        OntologyGuard.enforce(load("ontology-approved"), codeRegistry) // 예외 없음
+        OntologyGuard.enforce(load("ontology-approved"), codeRegistry)
     }
 
     @Test

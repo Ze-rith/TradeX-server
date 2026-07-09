@@ -15,7 +15,6 @@ import org.springframework.http.HttpMethod
 import org.springframework.http.HttpStatus
 import java.util.UUID
 
-/** auth-service 단독 E2E: 내부 프로비저닝 API로 사용자를 만들고 인증 수명 주기를 검증한다. */
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = [
@@ -29,7 +28,6 @@ class AuthServiceE2ETest(@Autowired private val rest: TestRestTemplate) {
     @Suppress("UNCHECKED_CAST")
     private fun data(body: Map<*, *>?): Map<String, Any?> = body?.get("data") as Map<String, Any?>
 
-    /** registration-service가 하는 일을 그대로: prepare → PUT users. */
     private fun provisionUser(email: String, password: String): String {
         val prepared = rest.postForEntity(
             "/internal/credentials",
@@ -65,7 +63,6 @@ class AuthServiceE2ETest(@Autowired private val rest: TestRestTemplate) {
             Map::class.java,
         ).statusCode shouldBe HttpStatus.CONFLICT
 
-        // 사가 재시도 시나리오: 같은 PUT 반복 → 멱등 (에러 없음)
         rest.exchange(
             "/internal/users/$userId", HttpMethod.PUT,
             HttpEntity(mapOf("email" to "prov@example.com", "passwordHash" to "whatever")), Map::class.java,
@@ -78,11 +75,10 @@ class AuthServiceE2ETest(@Autowired private val rest: TestRestTemplate) {
 
         rest.exchange("/internal/users/$userId?reason=test", HttpMethod.DELETE, HttpEntity.EMPTY, Map::class.java)
             .statusCode shouldBe HttpStatus.OK
-        // 멱등: 재폐기도 성공
+
         rest.exchange("/internal/users/$userId?reason=test", HttpMethod.DELETE, HttpEntity.EMPTY, Map::class.java)
             .statusCode shouldBe HttpStatus.OK
 
-        // 폐기된 계정은 로그인 불가 + 이메일 재사용 가능
         signIn("revoke-me@example.com", "Str0ng!Passw0rd").statusCode shouldBe HttpStatus.UNAUTHORIZED
         rest.postForEntity(
             "/internal/credentials",
@@ -122,7 +118,6 @@ class AuthServiceE2ETest(@Autowired private val rest: TestRestTemplate) {
         val cookie2 = refreshCookieOf(reissued.headers)
         cookie2 shouldNotBe cookie1
 
-        // 옛 refresh 재사용 → 401 + 전면 폐기
         rest.exchange(
             "/api/v1/auth/reissue", HttpMethod.POST,
             HttpEntity<Void>(HttpHeaders().apply { add(HttpHeaders.COOKIE, cookie1) }), Map::class.java,
@@ -132,7 +127,6 @@ class AuthServiceE2ETest(@Autowired private val rest: TestRestTemplate) {
             HttpEntity<Void>(HttpHeaders().apply { add(HttpHeaders.COOKIE, cookie2) }), Map::class.java,
         ).statusCode shouldBe HttpStatus.UNAUTHORIZED
 
-        // 재로그인 → 사인아웃 → access 블랙리스트
         val again = signIn("lifecycle@example.com", "Str0ng!Passw0rd")
         val access3 = data(again.body)["accessToken"] as String
         val cookie3 = refreshCookieOf(again.headers)

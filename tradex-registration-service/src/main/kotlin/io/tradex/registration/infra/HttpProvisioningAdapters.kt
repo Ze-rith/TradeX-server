@@ -17,11 +17,6 @@ data class ServiceEndpoints(
     val memberBaseUrl: String = "http://localhost:8082",
 )
 
-/**
- * 서비스 간 HTTP 어댑터. 4xx는 다운스트림의 {code, message}를 그대로 실은
- * [ProvisioningRejectedException]으로 변환한다 — 사가에서는 영구 실패,
- * 프리페어 단계에서는 클라이언트로 그대로 전달된다. 5xx/IO 오류는 그대로 던져 재시도 대상이 된다.
- */
 private fun <R> mapRejection(objectMapper: ObjectMapper, block: () -> R): R = try {
     block()
 } catch (e: RestClientResponseException) {

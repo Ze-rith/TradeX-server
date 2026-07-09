@@ -17,7 +17,6 @@ import io.tradex.saga.engine.CompensationFailed
 import io.tradex.saga.engine.CompensationStarted
 import io.tradex.saga.engine.CompensationSucceeded
 
-/** 탐색 대상: 사가 정의 + 컨텍스트 + (불변식이 들여다볼) fake 포트들. 경로마다 새로 생성된다. */
 interface SagaScenario<C> {
     val definition: SagaDefinition<C>
     val context: C
@@ -45,11 +44,6 @@ class StateSpaceExceededException(steps: Int, maxSteps: Int) : RuntimeException(
         "모델 체커는 step ≤ $maxSteps 사가만 지원한다. 사가를 분해하라.",
 )
 
-/**
- * 사가 모델 체커: 각 step에 {성공, 실패, 타임아웃, 보상타임아웃}을 주입하는
- * 모든 조합(4^n)을 결정론적으로 실행하고 불변식을 평가한다.
- * 위반 발견 시 사람이 읽을 수 있는 반례 경로를 만든다.
- */
 class ModelChecker<C, S : SagaScenario<C>>(
     private val scenarioFactory: () -> S,
     private val maxSteps: Int = 6,
@@ -78,7 +72,7 @@ class ModelChecker<C, S : SagaScenario<C>>(
             store = store,
             executor = SimulatedStepExecutor(assignment),
             codec = PassthroughCodec(),
-            sleeper = {}, // 시뮬레이션에서는 백오프 대기 없음
+            sleeper = {},
         )
         val sagaId = AggregateId.new()
         val outcome = engine.start(sagaId, scenario.context)

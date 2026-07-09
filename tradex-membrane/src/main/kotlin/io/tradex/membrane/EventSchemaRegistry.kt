@@ -9,10 +9,6 @@ data class RegisteredSchema(
     val eventClass: KClass<out DomainEvent>,
 )
 
-/**
- * (type, version) ↔ 이벤트 클래스 매핑. [register]는 @EventSchema를 읽고,
- * 애노테이션을 붙일 수 없는 모듈(예: core testFixtures)은 명시적 오버로드를 쓴다.
- */
 class EventSchemaRegistry {
     private val byType = LinkedHashMap<String, RegisteredSchema>()
     private val byClass = LinkedHashMap<KClass<*>, RegisteredSchema>()

@@ -6,10 +6,6 @@ import io.tradex.core.event.EventId
 import io.tradex.membrane.EventSchema
 import java.time.Instant
 
-/**
- * 사가 엔진 자체가 이벤트소싱된다. 이 이벤트들이 L0 이벤트 스토어에 기록되며,
- * 어떤 사가 인스턴스든 이 히스토리만으로 결정론적 재구성이 가능하다 ([SagaReplayState]).
- */
 sealed interface SagaEvent : DomainEvent {
     val sagaName: String
 }
@@ -59,7 +55,7 @@ data class CompensationStarted(
     override val aggregateId: AggregateId,
     override val validTime: Instant,
     override val sagaName: String,
-    /** 보상을 촉발한(성공하지 못한) step. */
+
     val fromStepName: String,
     override val eventId: EventId = EventId.new(),
 ) : SagaEvent

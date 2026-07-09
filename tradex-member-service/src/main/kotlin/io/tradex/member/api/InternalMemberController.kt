@@ -34,7 +34,6 @@ data class CreateMemberRequest(
     @field:NotBlank val phoneNumberHash: String,
 )
 
-/** registration-service 전용 내부 API. PUT/DELETE는 사가 재시도에 대해 멱등. */
 @RestController
 @RequestMapping("/internal")
 class InternalMemberController(private val provisioning: MemberProvisioningService) {

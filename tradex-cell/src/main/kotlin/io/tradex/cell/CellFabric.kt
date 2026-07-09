@@ -6,9 +6,6 @@ import io.tradex.core.event.EventRecord
 import io.tradex.core.store.InMemoryEventStore
 import java.util.concurrent.ConcurrentHashMap
 
-/**
- * 단일 JVM 셀 패브릭: N개 셀 기동 + consistent hashing 라우팅 + 마이그레이션 라우팅 오버라이드.
- */
 class CellFabric(
     cellCount: Int = 3,
     virtualNodes: Int = 128,
@@ -17,10 +14,8 @@ class CellFabric(
     val cells: Map<Int, Cell> = (0 until cellCount).associateWith(cellFactory)
     private val ring = ConsistentHashRing(cells.keys, virtualNodes)
 
-    /** 마이그레이션 완료 후 해시 라우팅을 덮어쓰는 스위치 (④단계 산출물). */
     private val routeOverrides = ConcurrentHashMap<AggregateId, Int>()
 
-    /** 마이그레이션 진행 중 aggregate — 쓰기는 거절된다 (DECISIONS.md D10). */
     private val migrating = ConcurrentHashMap.newKeySet<AggregateId>()
 
     fun cellIdFor(aggregateId: AggregateId): Int = routeOverrides[aggregateId] ?: ring.route(aggregateId)

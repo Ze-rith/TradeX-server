@@ -13,7 +13,6 @@ import java.util.concurrent.ConcurrentHashMap
 import kotlin.time.Duration.Companion.milliseconds
 import org.springframework.context.SmartLifecycle
 
-/** 이메일 유니크 인덱스 (DECISIONS.md D20). 등록/로그인 직전 [catchUp]으로 동기 캐치업. */
 class EmailIndexProjection : Projection {
     override val name = "email-index"
     private val byEmail = ConcurrentHashMap<String, AggregateId>()

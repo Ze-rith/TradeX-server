@@ -2,16 +2,11 @@ package io.tradex.membrane.store
 
 import javax.sql.DataSource
 
-/** 번들된 schema.sql을 적용한다 (idempotent). 테스트/로컬 기동용. */
 object SchemaInitializer {
     fun apply(dataSource: DataSource) {
         execute(dataSource, bundledDdl())
     }
 
-    /**
-     * 셀 파티션용: event_store를 셀별 테이블(event_store_0, ...)로 복제 생성한다.
-     * snapshot/projection_offset은 공유 테이블 그대로.
-     */
     fun applyForCells(dataSource: DataSource, cellIds: Collection<Int>, tableBaseName: String = "event_store") {
         val ddl = bundledDdl()
         execute(dataSource, ddl)

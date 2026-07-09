@@ -4,11 +4,6 @@ import io.tradex.core.event.DomainEvent
 import io.tradex.core.event.EventId
 import io.tradex.core.event.EventRecord
 
-/**
- * 정정을 원본 위치로 접어 넣은 "유효 스트림" (DECISIONS.md D5).
- * 반환 레코드의 event는 최종 정정본, 위치(seqNo)는 원본의 것이다.
- * 정정의 정정은 체인을 끝까지 따른다. 입력 밖을 겨냥한 정정은 무시된다.
- */
 internal fun effectiveStream(records: List<EventRecord<DomainEvent>>): List<EventRecord<DomainEvent>> {
     val latestCorrectionByTarget = HashMap<EventId, DomainEvent>()
     for (record in records) {

@@ -4,7 +4,6 @@ import io.tradex.router.ProjectionOffsetStore
 import javax.sql.DataSource
 import org.springframework.jdbc.core.simple.JdbcClient
 
-/** projection_offset 테이블 구현. 인메모리 프로젝션과 함께 쓸 때는 기동 시 [reset]으로 재구축한다. */
 class PostgresProjectionOffsetStore(dataSource: DataSource) : ProjectionOffsetStore {
     private val jdbc = JdbcClient.create(dataSource)
 

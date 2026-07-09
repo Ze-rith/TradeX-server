@@ -13,10 +13,6 @@ import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Primary
 import org.springframework.http.HttpStatus
 
-/**
- * registration-service 단독 E2E. 다운스트림은 fake 포트로 대체한다
- * (실제 3서비스 연동은 README의 curl 시나리오로 검증).
- */
 @SpringBootTest(
     webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT,
     properties = [

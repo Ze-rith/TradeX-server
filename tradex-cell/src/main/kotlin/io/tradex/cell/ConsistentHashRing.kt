@@ -4,10 +4,6 @@ import io.tradex.core.event.AggregateId
 import java.security.MessageDigest
 import java.util.TreeMap
 
-/**
- * 가상 노드 포함 consistent hashing: aggregateId → cellId 고정 라우팅.
- * 셀 추가/제거 시 재배치되는 키를 1/N 근방으로 제한한다.
- */
 class ConsistentHashRing(cellIds: Collection<Int>, virtualNodes: Int = 128) {
     private val ring = TreeMap<Long, Int>()
 

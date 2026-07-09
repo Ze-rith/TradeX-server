@@ -22,22 +22,6 @@ data class OntologyTerm(
     val definition: String,
 )
 
-/**
- * ontology 디렉토리의 YAML 파일 기반 유비쿼터스 언어 레지스트리.
- *
- * 파일 형식:
- * ```yaml
- * context: order
- * terms:
- *   - term: 주문
- *     definition: 고객이 상품 구매 의사를 확정한 사실
- * schemas:
- *   - type: OrderPlaced
- *     version: 3
- *     status: APPROVED
- *     fields: [orderId, amount, currency]
- * ```
- */
 class OntologyRegistry(
     val terms: List<OntologyTerm>,
     val schemas: Map<String, OntologySchema>,

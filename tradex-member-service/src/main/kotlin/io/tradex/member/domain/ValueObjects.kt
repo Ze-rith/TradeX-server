@@ -10,7 +10,6 @@ class UnderageException : MemberException("만 14세 이상만 가입할 수 있
 class InvalidPhoneNumberException : MemberException("전화번호 형식이 올바르지 않습니다")
 class PhoneNumberAlreadyExistsException : MemberException("이미 등록된 전화번호입니다")
 
-/** 레거시 Name과 동일: 한글/영문 시작, 공백 정규화, 최대 50자. */
 @JvmInline
 value class Name private constructor(val value: String) {
     companion object {
@@ -25,7 +24,6 @@ value class Name private constructor(val value: String) {
     }
 }
 
-/** 레거시 BirthDate와 동일: 1900-01-01 이후, 미래 불가, 만 14세 이상. */
 @JvmInline
 value class BirthDate private constructor(val value: LocalDate) {
     companion object {
@@ -40,7 +38,6 @@ value class BirthDate private constructor(val value: LocalDate) {
     }
 }
 
-/** 레거시 PhoneNumber와 동일: 한국 번호를 E.164(+82…)로 정규화. */
 @JvmInline
 value class PhoneNumber private constructor(val e164: String) {
     companion object {

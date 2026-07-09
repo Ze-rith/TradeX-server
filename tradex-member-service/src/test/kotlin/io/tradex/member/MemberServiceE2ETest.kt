@@ -37,7 +37,7 @@ class MemberServiceE2ETest(@Autowired private val rest: TestRestTemplate) {
         val body = data(prepared.body)
         body.keys shouldContain "encryptedName"
         body.keys shouldContain "phoneNumberHash"
-        // 평문이 응답 어디에도 없다
+
         (body.values.none { it == "김제리" }) shouldBe true
 
         prepare(name = "!!!", phone = "010-5555-6667").let {
@@ -67,17 +67,15 @@ class MemberServiceE2ETest(@Autowired private val rest: TestRestTemplate) {
         )
         rest.exchange("/internal/members/$memberId", HttpMethod.PUT, HttpEntity(createBody), Map::class.java)
             .statusCode shouldBe HttpStatus.CREATED
-        // 멱등 재시도
+
         rest.exchange("/internal/members/$memberId", HttpMethod.PUT, HttpEntity(createBody), Map::class.java)
             .statusCode shouldBe HttpStatus.CREATED
 
-        // 같은 전화의 다른 표기 → 프리페어 단계에서 409
         prepare(phone = "+82 10-7777-8888").let {
             it.statusCode shouldBe HttpStatus.CONFLICT
             it.body?.get("code") shouldBe "PHONE_DUPLICATE"
         }
 
-        // 보상(DELETE) 후에는 전화번호가 다시 사용 가능
         rest.exchange("/internal/members/$memberId?reason=test", HttpMethod.DELETE, HttpEntity.EMPTY, Map::class.java)
             .statusCode shouldBe HttpStatus.OK
         prepare(phone = "010-7777-8888").statusCode shouldBe HttpStatus.OK

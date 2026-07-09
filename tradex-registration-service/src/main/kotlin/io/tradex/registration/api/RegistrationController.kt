@@ -22,7 +22,6 @@ import org.springframework.web.bind.annotation.ResponseStatus
 import org.springframework.web.bind.annotation.RestController
 import org.springframework.web.bind.annotation.RestControllerAdvice
 
-/** 레거시 RegisterAccountRequest와 동일 계약. */
 data class RegisterAccountRequest(
     @field:NotBlank @field:Email val email: String,
     @field:NotBlank @field:Size(min = 12, max = 128) val password: String,
@@ -52,7 +51,7 @@ class RegistrationController(private val registrationService: RegistrationServic
 
 @RestControllerAdvice
 class RegistrationErrorHandler {
-    /** 다운스트림 거절(중복/정책 위반)은 status·code·message를 그대로 클라이언트에 전달한다. */
+
     @ExceptionHandler(ProvisioningRejectedException::class)
     fun rejected(e: ProvisioningRejectedException): ResponseEntity<BaseResponse<Unit>> =
         ResponseEntity.status(e.status).body(BaseResponse.error(e.code, e.message))

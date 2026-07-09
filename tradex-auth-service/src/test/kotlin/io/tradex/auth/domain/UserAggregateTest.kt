@@ -30,7 +30,7 @@ class UserAggregateTest {
         )
 
         locked.isLocked(t.plusSeconds(60)).shouldBeTrue()
-        locked.isLocked(t.plus(Duration.ofMinutes(31))).shouldBeFalse() // 해제 이벤트 없이 시간 파생
+        locked.isLocked(t.plus(Duration.ofMinutes(31))).shouldBeFalse()
     }
 
     @Test
@@ -54,7 +54,6 @@ class UserAggregateTest {
         )
         base.activeRefreshJti shouldBe "jti-2"
 
-        // 이미 폐기된 옛 jti의 폐기 이벤트가 늦게 리플레이되어도 활성 세션을 건드리지 않는다
         UserAggregate.evolve(base, RefreshTokenRevoked(id, t, "jti-1", "stale")).activeRefreshJti shouldBe "jti-2"
     }
 

@@ -4,14 +4,6 @@ import io.tradex.core.event.DomainEvent
 import io.tradex.membrane.EventSchemaRegistry
 import io.tradex.membrane.EventSerde
 
-/**
- * 리플레이 게이트: 레지스트리에 등록된 모든 (type, version 1..latest)에 대해
- * `src/test/resources/<fixtureBasePath>/<type>/v<n>.json` fixture가 존재하고,
- * upcast → 역직렬화 → evolve 적용까지 통과해야 한다.
- *
- * fixture가 없으면 실패로 처리해 **fixture 작성을 강제**한다. 이것이 스키마 진화의
- * 회귀 방지선이다: 새 버전을 만들면 옛 버전 샘플이 계속 리플레이 가능함을 증명해야 빌드가 성공한다.
- */
 class ReplayGate(
     private val registry: EventSchemaRegistry,
     private val serde: EventSerde,

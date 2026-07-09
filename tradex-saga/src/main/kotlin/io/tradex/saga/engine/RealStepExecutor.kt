@@ -11,7 +11,6 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
 import kotlin.time.Duration
 
-/** 가상 스레드에서 실제 타임아웃을 걸고 액션을 실행한다. */
 class RealStepExecutor<C>(
     private val pool: ExecutorService = Executors.newVirtualThreadPerTaskExecutor(),
 ) : StepExecutor<C> {
