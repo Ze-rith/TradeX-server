@@ -16,8 +16,6 @@
 | `chronos-cell` | L4 Cell Fabric | 가상 노드 consistent hashing, 4단계 셀 마이그레이션(복사→캐치업→스위치→tombstone), blast radius 격리 |
 | `chronos-ontology` | L5 Ubiquitous Language Registry | `ontology/*.yaml`. 미승인(DRAFT) 스키마는 기동 실패. `ontologyValidate` Gradle 태스크가 코드↔YAML diff로 빌드 게이트 |
 | `chronos-runtime` | 조립 | `@EnableChronos` 하나로 전 레이어 와이어링 |
-| `example-app` | 데모 | 주문/결제/재고 (결제·재고는 인메모리 fake 포트) |
-| `tradex-app` | 실전 이식 | 레거시 tradexServer(인증/회원가입/멤버)의 CHRONOS 재구현 — 아래 참조 |
 
 ## 빌드 & 테스트
 
@@ -27,154 +25,83 @@
 ./gradlew build
 ```
 
-## 실행 (curl 시나리오)
+## tradex-* 서비스 — 레거시 기능의 CHRONOS 이식 (MSA)
 
-전제: Docker, JDK 21. **저장소 루트에서** 실행한다.
+레거시 tradexServer(커밋 `ee6ac1f`)의 인증/회원가입/멤버를 CHRONOS 위에 **기능별 독립 서비스**로
+재구현했다. 각 서비스는 자기 CHRONOS 패브릭(전용 Postgres 테이블 프리픽스)을 갖고, 서로 HTTP로만
+통신한다 — 프로세스 경계가 곧 Bounded Context 경계다.
 
-```bash
-docker compose up -d          # PostgreSQL 16 (localhost:55432, chronos/chronos — 로컬 PG와 충돌 방지)
-./gradlew :example-app:bootRun
-```
+| 서비스 | 포트 | 소유 애그리게잇 | 책임 |
+|---|---|---|---|
+| `tradex-auth-service` | 8081 | User | 로그인/토큰 회전/사인아웃/검증. `/internal/*`로 프로비저닝 API 노출 |
+| `tradex-member-service` | 8082 | Member | PII 암호화 저장·유니크 검사. `/internal/*`로 프로비저닝 API 노출 |
+| `tradex-registration-service` | 8083 | (상태 없음, 사가만) | `RegisterAccount` 사가 오케스트레이터 — auth/member를 HTTP로 호출 |
 
-기동 로그에서 온톨로지 가드(L5)가 통과했는지 확인할 수 있다. `ontology/*.yaml`에서
-스키마 하나를 `status: DRAFT`로 바꾸면 기동이 실패하는 것도 볼 수 있다 (fail-fast).
-
-### 1. 주문 생성 → 사가(결제→재고→배송) 완료
-
-```bash
-RESP=$(curl -s -X POST localhost:8080/orders \
-  -H 'Content-Type: application/json' \
-  -d '{"productName": "mechanical keyboard", "amount": 150000, "currency": "KRW"}')
-echo "$RESP" | jq
-ORDER=$(echo "$RESP" | jq -r .orderId)
-SAGA=$(echo "$RESP" | jq -r .sagaId)
-TOKEN=$(echo "$RESP" | jq -r .sessionToken)
-```
-
-`sagaOutcome: COMPLETED`, `status: CONFIRMED`, 그리고 HMAC 서명된 `sessionToken`이 온다.
-
-### 2. read-your-writes 조회 — 항상 방금 쓴 값이 보인다
-
-```bash
-# 프로젝션 지연을 일부러 주입해도 (2초)
-curl -s -X POST localhost:8080/admin/projection-delay \
-  -H 'Content-Type: application/json' -d '{"delayMs": 1000}' | jq
-
-# eventual은 stale을 볼 수 있지만 (빈 프로젝션이면 404)
-curl -s localhost:8080/orders/$ORDER -H 'X-Consistency: eventual' | jq
-
-# read-your-writes는 토큰의 seq까지 기다렸다가 반드시 자기 쓰기를 본다
-curl -s localhost:8080/orders/$ORDER \
-  -H 'X-Consistency: read-your-writes' -H "X-Session-Token: $TOKEN" | jq
-
-# strong은 프로젝션을 우회해 이벤트 스토어에서 직접 리플레이한다
-curl -s localhost:8080/orders/$ORDER -H 'X-Consistency: strong' | jq
-
-# 지연 원복
-curl -s -X POST localhost:8080/admin/projection-delay \
-  -H 'Content-Type: application/json' -d '{"delayMs": 0}' > /dev/null
-```
-
-지연을 RYW 타임아웃(2s)보다 크게 주면 `503 + Retry-After`를 받는다.
-
-### 3. 가격 정정 (bi-temporal) → as-of / as-at 비교
-
-```bash
-T_BEFORE=$(date -u +%Y-%m-%dT%H:%M:%SZ)   # 정정 이전 시각을 기억
-sleep 1
-
-# 소급 정정: "사실 그 주문의 금액은 135,000이었다"
-curl -s -X POST localhost:8080/orders/$ORDER/price-correction \
-  -H 'Content-Type: application/json' -d '{"amount": 135000}' | jq
-
-# asOf(지금): 정정이 소급 반영된 진실 → 135000
-curl -s "localhost:8080/orders/$ORDER/as-of?at=$(date -u +%Y-%m-%dT%H:%M:%SZ)" | jq .amount
-
-# asAt(정정 이전): 그 당시 시스템이 알던 모습 → 150000
-curl -s "localhost:8080/orders/$ORDER/as-at?at=$T_BEFORE" | jq .amount
-
-# 원본 이벤트 로우는 물리적으로 보존된다 (correctionOf 링크 확인)
-curl -s localhost:8080/admin/orders/$ORDER/events | jq '.[] | {seqNo, eventType, correctionOf, payload}'
-```
-
-### 4. 결제 실패 유발 → 사가 보상 확인
-
-```bash
-curl -s -X POST localhost:8080/admin/payment-mode \
-  -H 'Content-Type: application/json' -d '{"mode": "FAIL"}' | jq
-
-RESP2=$(curl -s -X POST localhost:8080/orders \
-  -H 'Content-Type: application/json' \
-  -d '{"productName": "gaming mouse", "amount": 89000}')
-echo "$RESP2" | jq '{sagaOutcome, status}'    # COMPENSATED / CANCELLED
-
-# 사가 엔진 자체가 이벤트소싱 — 재시도 소진과 보상 히스토리가 그대로 남는다
-SAGA2=$(echo "$RESP2" | jq -r .sagaId)
-curl -s localhost:8080/admin/orders/$SAGA2/events | jq '.[].eventType'
-
-# 원복
-curl -s -X POST localhost:8080/admin/payment-mode \
-  -H 'Content-Type: application/json' -d '{"mode": "OK"}' > /dev/null
-```
-
-`mode: TIMEOUT`으로 바꾸면 `StepTimedOut` 경로(재시도 → 소진 → 보상)도 볼 수 있다.
-
-### 5. 셀 마이그레이션 → 상태 해시 동일 확인
-
-```bash
-# 현재 셀과 상태 해시
-curl -s localhost:8080/admin/orders/$ORDER/state-hash | jq
-CELL=$(curl -s localhost:8080/admin/orders/$ORDER/state-hash | jq .cellId)
-
-# 다른 셀로 이관: ① 스트림 복사 ② 오프셋 캐치업 ③ 라우팅 스위치 ④ 소스 tombstone
-curl -s -X POST localhost:8080/admin/orders/$ORDER/migrate \
-  -H 'Content-Type: application/json' -d "{\"targetCell\": $(( (CELL + 1) % 3 ))}" | jq
-
-# identical: true — 상태가 아니라 이벤트가 진실이므로, 스트림 리플레이만으로 상태가 복원된다
-curl -s localhost:8080/admin/orders/$ORDER/state-hash | jq
-curl -s localhost:8080/orders/$ORDER -H 'X-Consistency: strong' | jq
-```
-
-Postgres에서 직접 확인: 셀 파티션은 테이블로 분리되어 있다.
-
-```bash
-docker exec chronos-postgres psql -U chronos -c '\dt event_store*'
-docker exec chronos-postgres psql -U chronos -c \
-  'SELECT seq_no, event_type, event_version, correction_of, transaction_time FROM event_store_0 ORDER BY global_seq LIMIT 10;'
-```
-
-## tradex-app — 레거시 기능의 CHRONOS 이식
-
-레거시 tradexServer(커밋 `ee6ac1f`)의 인증/회원가입/멤버를 CHRONOS 위에 재구현한 앱.
 API 계약(BaseResponse 봉투, refresh HttpOnly 쿠키, 경로)과 도메인 규칙(비밀번호 12자+3종,
-5회 실패 30분 잠금, E.164 정규화, 만 14세)은 레거시 그대로다. 매핑은 DECISIONS.md D17~D21.
+5회 실패 30분 잠금, E.164 정규화, 만 14세)은 레거시 그대로다. 매핑 근거는 DECISIONS.md D17~D22.
 
 | 레거시 | CHRONOS 재구현 |
 |---|---|
-| JPA User 엔티티 (가변 상태) | `UserAggregate` 이벤트 리플레이 — 로그인 실패/잠금/토큰 수명 주기가 전부 이벤트 |
+| 단일 앱의 JPA User 엔티티 | auth-service의 `UserAggregate` 이벤트 리플레이 |
 | Redis refresh 스토어 + 블랙리스트 | User 스트림의 `RefreshTokenIssued/Revoked`, `AccessTokenBlacklisted` |
-| 등록 = 단일 @Transactional | `RegisterAccount` 사가 (User → Member, 실패 시 역순 보상) + **모델 체커로 16경로 전수 증명** |
-| DB unique 제약 (email/phone) | 인덱스 프로젝션 + 동기 catch-up 검사 |
-| PII 암호화 컬럼 | 이벤트 페이로드에 AES-GCM 암호문만 (crypto-shredding 경로 유지) |
+| 등록 = 단일 `@Transactional` (한 프로세스) | registration-service의 **서비스 간 사가** — auth/member를 HTTP로 호출, 실패 시 역순 보상(DELETE). **모델 체커가 16경로 전수로 "계정과 멤버는 함께 존재하거나 함께 사라진다"를 증명** |
+| DB unique 제약 (email/phone) | 각 서비스 내부 인덱스 프로젝션 + 동기 catch-up 검사 |
+| PII 암호화 컬럼 | member-service 소유 AES-GCM 암호문만 이벤트에 (crypto-shredding 경로 유지) |
+
+### 실행
 
 ```bash
-docker compose up -d
-./gradlew :tradex-app:bootRun    # port 8081, secrets/jwt-*.pem 있으면 로드, 없으면 임시 키
+docker compose up -d                        # PostgreSQL (localhost:55432, chronos/chronos)
+./gradlew :tradex-auth-service:bootRun &
+./gradlew :tradex-member-service:bootRun &
+./gradlew :tradex-registration-service:bootRun &
+```
 
-# 가입 → 로그인 → 검증 → 회전 → 재사용 감지 → 사인아웃
-curl -s -X POST localhost:8081/api/v1/registration -H 'Content-Type: application/json' \
+세 프로세스 모두 기동 로그에서 온톨로지 가드(L5)를 통과해야 한다. secrets/jwt-*.pem이 있으면
+auth-service가 그 키로 RS256을 서명하고, 없으면 임시 키쌍을 생성한다(재기동 시 토큰 전부 무효화).
+
+### curl 시나리오 — 가입 → 로그인 → 회전 → 재사용 감지 → 사인아웃
+
+```bash
+# 가입: registration-service(8083)가 auth-service(8081)·member-service(8082)를 HTTP로 호출
+curl -s -X POST localhost:8083/api/v1/registration -H 'Content-Type: application/json' \
   -d '{"email":"me@tradex.io","password":"Sup3r$ecretPw!","name":"김제리","birthDate":"1995-03-14","phoneNumber":"010-1234-5678"}'
 
+# 중복 이메일 → auth-service의 409가 registration을 거쳐 그대로 전달된다
+curl -s -w '\n%{http_code}\n' -X POST localhost:8083/api/v1/registration -H 'Content-Type: application/json' \
+  -d '{"email":"me@tradex.io","password":"Sup3r$ecretPw!","name":"김","birthDate":"1995-03-14","phoneNumber":"010-9999-0000"}'
+
+# 로그인은 auth-service에 직접 (registration은 등록 전용, 인증에 관여하지 않는다)
 curl -s -c /tmp/c.txt -X POST localhost:8081/api/v1/auth/sign-in -H 'Content-Type: application/json' \
   -d '{"email":"me@tradex.io","password":"Sup3r$ecretPw!"}'          # data.accessToken + refresh 쿠키
 curl -s localhost:8081/api/v1/auth/me -H "Authorization: Bearer $ACCESS"
 curl -s -b /tmp/c.txt -c /tmp/c2.txt -X POST localhost:8081/api/v1/auth/reissue   # 회전
 curl -s -b /tmp/c.txt -X POST localhost:8081/api/v1/auth/reissue                  # 옛 토큰 재사용 → 401 + 전면 폐기
 curl -s -b /tmp/c2.txt -X POST localhost:8081/api/v1/auth/sign-out -H "Authorization: Bearer $ACCESS"
+```
 
-# 계정의 전체 수명 주기가 이벤트 감사 로그로 남는다
+### blast radius 데모 — auth-service를 죽여도 그 사실이 정확히 전파된다
+
+```bash
+kill $(lsof -tiTCP:8081 -sTCP:LISTEN)     # auth-service만 다운
+
+# member-service는 살아있지만, 등록 사가의 첫 step(auth 호출)이 실패해 전체가 실패한다
+# member 쪽에는 고아 이벤트가 전혀 남지 않는다 (프리페어 단계에서 이미 중단)
+curl -s -w '\n%{http_code}\n' -X POST localhost:8083/api/v1/registration -H 'Content-Type: application/json' \
+  -d '{"email":"during-outage@tradex.io","password":"Sup3r$ecretPw!","name":"김","birthDate":"1995-03-14","phoneNumber":"010-1111-2222"}'
+
+./gradlew :tradex-auth-service:bootRun &   # 복구 후에는 다시 정상 등록된다
+```
+
+### 서비스별 이벤트 감사 로그 확인
+
+```bash
 docker exec chronos-postgres psql -U chronos -c \
-  "SELECT seq_no, event_type FROM tradex_event_store_0 WHERE aggregate_type='User' ORDER BY seq_no;"
+  "SELECT seq_no, event_type FROM tradex_auth_event_store_0 WHERE aggregate_type='User' ORDER BY seq_no;"
+docker exec chronos-postgres psql -U chronos -c \
+  "SELECT seq_no, event_type FROM tradex_member_event_store_0 WHERE aggregate_type='Member' ORDER BY seq_no;"
+docker exec chronos-postgres psql -U chronos -c \
+  "SELECT seq_no, event_type FROM tradex_registration_event_store_0 WHERE aggregate_type='Saga' ORDER BY seq_no;"
 ```
 
 ## 핵심 테스트 지도
@@ -183,11 +110,15 @@ docker exec chronos-postgres psql -U chronos -c \
 |---|---|
 | asOf/asAt 차이 + 원본 보존 | `chronos-core BiTemporalAcceptanceTest`, `chronos-membrane PostgresEventStoreTest` |
 | v1→v2→v3 업캐스트 체인 | `chronos-membrane UpcasterChainTest` |
-| fixture 강제 (리플레이 게이트) | `chronos-membrane ReplayGateTest`, `example-app ExampleReplayGateTest` |
+| fixture 강제 (리플레이 게이트) | `chronos-membrane ReplayGateTest`, 각 `tradex-*-service`의 `*ReplayGateTest` |
 | 사가 결정론적 리플레이/크래시 재개 | `chronos-saga SagaEngineTest` |
 | **모델 체커 반례 (보상 타임아웃 미처리)** | `chronos-saga ModelCheckerTest` — 반례 경로가 사람이 읽게 출력된다 |
+| **서비스 간 등록 사가 — 유령 계정 금지 (16경로 전수)** | `tradex-registration-service RegistrationSagaModelCheckTest` |
 | RYW가 지연 주입에도 자기 쓰기 관측 | `chronos-router ConsistencyGradientAcceptanceTest` |
-| 마이그레이션 전후 상태 해시 동일 | `chronos-cell CellMigrationTest`, `example-app EndToEndScenarioTest` |
-| blast radius 격리 | `chronos-cell CellFabricTest` |
-| 의존 방향 + core 순수성 | `chronos-runtime ArchitectureRulesTest` (Konsist) |
+| 마이그레이션 전후 상태 해시 동일 | `chronos-cell CellMigrationTest` |
+| blast radius 격리 | `chronos-cell CellFabricTest`, 위 curl 데모(auth-service 다운) |
+| 인증 수명 주기(로그인/잠금/회전/재사용감지/블랙리스트) | `tradex-auth-service AuthServiceE2ETest`, `UserAggregateTest` |
+| PII 암호화 + 전화 유니크(E.164 정규화) | `tradex-member-service MemberServiceE2ETest` |
+| 등록 오케스트레이션 + 다운스트림 거절 전파 | `tradex-registration-service RegistrationServiceE2ETest` |
+| 의존 방향 + core 순수성 + 서비스별 도메인 격리 | `chronos-runtime ArchitectureRulesTest` (Konsist) |
 | 코드↔온톨로지 drift | `./gradlew ontologyValidate` (check에 연결) |

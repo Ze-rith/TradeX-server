@@ -1,0 +1,16 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: tradex-member
+  datasource:
+    url: jdbc:postgresql://localhost:55432/chronos
+    username: chronos
+    password: chronos
+
+chronos:
+  storage: POSTGRES
+  cell-count: 3
+  ontology-dir: ontology
+  table-prefix: tradex_member_event_store

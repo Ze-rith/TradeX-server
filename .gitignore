@@ -42,3 +42,8 @@ out/
 ### Local secrets ###
 .env
 secrets/
+.gradle/
+.idea/
+build/
+**/.DS_Store
+.DS_Store

@@ -12,6 +12,7 @@ include(
     "chronos-cell",
     "chronos-ontology",
     "chronos-runtime",
-    "example-app",
-    "tradex-app",
+    "tradex-auth-service",
+    "tradex-member-service",
+    "tradex-registration-service",
 )

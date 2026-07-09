@@ -49,8 +49,9 @@ class ArchitectureRulesTest {
     fun `앱 도메인 패키지는 chronos 레이어 중 core 추상화만 import한다`() {
         // 앱 자신의 코드(자기 루트 패키지)는 허용 — 규칙의 대상은 chronos 레이어 침범이다
         val apps = mapOf(
-            "example-app" to "io.chronos.example.",
-            "tradex-app" to "io.chronos.tradex.",
+            "tradex-auth-service" to "io.chronos.tradex.",
+            "tradex-member-service" to "io.chronos.tradex.",
+            "tradex-registration-service" to "io.chronos.tradex.",
         )
         val bad = apps.flatMap { (module, ownPackage) ->
             mainFilesOf(module)

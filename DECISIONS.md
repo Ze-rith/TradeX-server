@@ -110,3 +110,12 @@
 
 - **결정**: User 등록과 Member 생성은 서로 다른 애그리게잇(잠재적으로 다른 셀)이므로 `RegisterAccount` 사가(registerUser → createMember, 보상 = 각각 Revoked 이벤트)로 묶고, 모델 체커로 "계정과 멤버는 함께 존재하거나 함께 사라진다" 불변식을 전 경로 검증한다. PII(이름/생일/전화)는 레거시처럼 AES-GCM 암호문으로만 이벤트에 저장하고 전화 유니크는 HMAC 해시로 잡는다.
 - **근거**: 불변 이벤트 로그에 평문 PII를 넣으면 삭제 요구에 대응 불가(crypto-shredding 경로 유지). JWT RS256 키는 `secrets/jwt-*.pem`이 있으면 로드, 없으면 기동 시 임시 생성(테스트/데모용).
+
+## D22. tradex-app 단일 배포체 → 3개 독립 서비스로 재분리 (MSA)
+
+- **결정**: `tradex-app`을 없애고 `tradex-auth-service`(8081, User 소유), `tradex-member-service`(8082, Member 소유), `tradex-registration-service`(8083, 상태 없는 사가 오케스트레이터)로 분리했다. 각 서비스는 전용 Postgres 테이블 프리픽스(`tradex_auth_event_store_*` 등)로 완전히 격리된 자기 CHRONOS 패브릭을 갖는다. `example-app`은 삭제.
+- **근거**: 사용자가 "기능 한 개당 따로따로 MSA 느낌"을 명시적으로 요청. 프로세스 경계를 Bounded Context 경계와 일치시키는 것이 CHRONOS L5(온톨로지)의 취지와도 맞는다 — 이전에는 한 JVM 안에서 모듈로만 나뉘어 있어 "서비스 장애가 다른 서비스에 어떤 영향을 주는가"를 증명할 수 없었다.
+- **API 경계**: auth/member 각각 `/internal/*`(프로비저닝: prepare + PUT/DELETE 멱등)을 registration 전용으로 노출한다. registration은 상태를 갖지 않고 사가 이벤트만 자기 스토어에 남긴다.
+- **평문 비밀 전파 최소화**: 평문 비밀번호/PII는 각 소유 서비스의 prepare 엔드포인트 호출에서만 네트워크를 넘고, 그 응답(해시/암호문)만 사가 컨텍스트에 실린다 — registration-service는 평문을 저장하지도, 재전송하지도 않는다.
+- **장애 모델**: 다운스트림 4xx 거절은 `ProvisioningRejectedException`으로 변환되어 사가에서 영구 실패로 취급되고, HTTP 응답의 status/code/message가 그대로 클라이언트까지 전달된다. 5xx/연결 실패(서비스 다운)는 그대로 전파되어 즉시 등록 실패 + 재시도 대상이 된다 — 실제로 auth-service를 강제 종료한 뒤 확인: member-service에는 고아 이벤트가 전혀 남지 않고(prepare 단계에서 이미 중단), 복구 후 정상 등록이 재개됨을 curl로 검증했다.
+- **모델 체커 갱신**: 사가 정의가 이제 HTTP 포트(`UserProvisioningPort`/`MemberProvisioningPort`) 뒤에 있으므로, 모델 체커는 실제 서비스 대신 그 계약을 흉내 내는 fake 어댑터로 16경로를 검증한다 (`RegistrationSagaModelCheckTest`).
